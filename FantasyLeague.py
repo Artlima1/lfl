@@ -109,6 +109,7 @@ class FantasyLeague:
             league_df = league_df.sort_values(by=[["wins", "avg"]], ascending=False)
             league_df["seed"] = league_df.index + 1
 
+        self.league_df = league_df
 
         self.charts = [
             LeagueBoxPlot(self.scores_df, league_df, filename=f'output/boxplot_w{self.current_week}.png'),
@@ -120,6 +121,15 @@ class FantasyLeague:
             for division in self.custom_divisions:
                 chart = LeagueProbChart(self.prob_df, league_df, division["team_names"], f"output/prob_chart_{division["name"]}_w{self.current_week}")
                 self.charts.append(chart)
+
+    def get_league_df(self):
+        return self.league_df
+
+    def get_scores_data(self):
+        return self.scores_df
+    
+    def get_probability_data(self):
+        return self.prob_df
 
     def export_charts(self):
         for chart in self.charts:
