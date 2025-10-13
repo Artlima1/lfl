@@ -248,11 +248,16 @@ def main():
         boxplot_chart = alt.Chart(boxplot_df).mark_boxplot(
             size=15
         ).encode(
-            x=alt.X('Time:N', sort=league_df['short_name'].tolist(), axis=alt.Axis(labelAngle=-45)),
+            x=alt.X('Time:N',
+                   sort=league_df['short_name'].tolist(),
+                   axis=alt.Axis(labelAngle=-45, labelLimit=100, labelOverlap=False)),
             y=alt.Y('Pontos:Q', scale=alt.Scale(zero=False)),
             color=alt.Color('Time:N', legend=None)
         ).properties(
             height=400
+        ).configure_axisX(
+            labelFontSize=9,
+            labelAngle=-45
         ).configure_view(
             strokeWidth=0
         )
@@ -274,7 +279,10 @@ def main():
 
         # Create bar chart with error bars
         base = alt.Chart(perf_chart_data).encode(
-            x=alt.X('short_name:N', title='Time', sort=None, axis=alt.Axis(labelAngle=-45)),
+            x=alt.X('short_name:N',
+                   title='Time',
+                   sort=None,
+                   axis=alt.Axis(labelAngle=-45, labelLimit=100, labelOverlap=False)),
         )
 
         bars = base.mark_bar().encode(
@@ -290,6 +298,9 @@ def main():
         perf_chart = (bars + error_bars).properties(
             height=600,
             padding={"left": 10, "top": 10, "right": 10, "bottom": 50}
+        ).configure_axisX(
+            labelFontSize=9,
+            labelAngle=-45
         )
 
         st.altair_chart(perf_chart, use_container_width=True)
