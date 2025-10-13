@@ -6,28 +6,14 @@ import json
 from scipy.interpolate import make_interp_spline
 
 # ==================== Configuration ====================
-
-# Load league configuration from JSON file
-def load_league_config(filename='league_config.json'):
-    """Load league configuration from JSON file."""
-    with open(filename, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-CONFIG = load_league_config()
-LEAGUE_ID = CONFIG['league_id']
-SEEDING = CONFIG['seeding']
-DIVISIONS = CONFIG['divisions']
+CONFIG_FILE = 'league_config.json'
 
 # ==================== Initialization Functions ====================
 
 @st.cache_resource
 def init_league():
-    """Initialize the Fantasy League with custom seeding and divisions."""
-    league = FantasyLeague(
-        LEAGUE_ID,
-        custom_seeding=SEEDING,
-        custom_divisions=DIVISIONS
-    )
+    """Initialize the Fantasy League from JSON configuration."""
+    league = FantasyLeague(from_json=CONFIG_FILE)
     return league
 
 @st.cache_data
@@ -352,14 +338,17 @@ def main():
         # Create checkboxes organized by division
         selected_teams = []
 
-        for division in DIVISIONS:
-            st.markdown(f"**Divisão {division['name']}**")
+        # Get unique divisions from league_df
+        divisions = league_df.groupby('division')['short_name'].apply(list).to_dict()
+
+        for division_name, team_names in divisions.items():
+            st.markdown(f"**Divisão {division_name}**")
             cols = st.columns(4)
 
-            for idx, team_name in enumerate(division['team_names']):
+            for idx, team_name in enumerate(team_names):
                 col_idx = idx % 4
                 with cols[col_idx]:
-                    if st.checkbox(team_name, value=False, key=f"prob_{division['name']}_{team_name}"):
+                    if st.checkbox(team_name, value=False, key=f"prob_{division_name}_{team_name}"):
                         selected_teams.append(team_name)
 
         st.markdown("---")

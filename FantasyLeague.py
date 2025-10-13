@@ -16,10 +16,18 @@ def expected_value(values, weights):
     return (values * weights).sum()
 
 class FantasyLeague:
-    def __init__(self, league_id, custom_seeding=None, custom_divisions=None):
-        self.league_id = league_id
-        self.custom_seeding = custom_seeding
-        self.custom_divisions = custom_divisions
+    def __init__(self, league_id=None, custom_seeding=None, custom_divisions=None, from_json=None):
+        if from_json:
+            # Load configuration from JSON file
+            with open(from_json, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            self.league_id = config.get('league_id')
+            self.custom_seeding = config.get('seeding')
+            self.custom_divisions = config.get('divisions')
+        else:
+            self.league_id = league_id
+            self.custom_seeding = custom_seeding
+            self.custom_divisions = custom_divisions
 
     def retrieve_teams(self):
         response = rq.get('https://api.sleeper.app/v1/league/{}/users'.format(self.league_id))
@@ -108,6 +116,16 @@ class FantasyLeague:
         else:
             league_df = league_df.sort_values(by=[["wins", "avg"]], ascending=False)
             league_df["seed"] = league_df.index + 1
+
+        # Add division information to league_df
+        if self.custom_divisions:
+            division_map = {}
+            for division in self.custom_divisions:
+                for team_name in division['team_names']:
+                    division_map[team_name] = division['name']
+            league_df['division'] = league_df['short_name'].map(division_map)
+        else:
+            league_df['division'] = None
 
         self.league_df = league_df
 
