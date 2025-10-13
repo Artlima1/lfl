@@ -2,40 +2,21 @@ from FantasyLeague import FantasyLeague
 import streamlit as st
 import pandas as pd
 import numpy as np
+import json
 from scipy.interpolate import make_interp_spline
 
 # ==================== Configuration ====================
-LEAGUE_ID = 1238157874098618368
 
-SEEDING = [
-    {"short_name": "Roludos", "seed": 1},
-    {"short_name": "Flyers", "seed": 2},
-    {"short_name": "SuperBowlers", "seed": 3},
-    {"short_name": "JetEagles", "seed": 4},
-    {"short_name": "Gamblers", "seed": 5},
-    {"short_name": "Farmers", "seed": 6},
-    {"short_name": "Pombos", "seed": 7},
-    {"short_name": "Quasars", "seed": 8},
-    {"short_name": "Vetter's", "seed": 9},
-    {"short_name": "Spartans", "seed": 10},
-    {"short_name": "CottonPickers", "seed": 11},
-    {"short_name": "Foxes", "seed": 12}
-]
+# Load league configuration from JSON file
+def load_league_config(filename='league_config.json'):
+    """Load league configuration from JSON file."""
+    with open(filename, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-DIVISIONS = [
-    {
-        "name": "COMI",
-        "team_names": ["Quasars", "Spartans", "Gamblers", "Flyers"]
-    },
-    {
-        "name": "SEU",
-        "team_names": ["JetEagles", "Roludos", "Vetter's", "Foxes"]
-    },
-    {
-        "name": "PAI",
-        "team_names": ["SuperBowlers", "CottonPickers", "Pombos", "Farmers"]
-    },
-]
+CONFIG = load_league_config()
+LEAGUE_ID = CONFIG['league_id']
+SEEDING = CONFIG['seeding']
+DIVISIONS = CONFIG['divisions']
 
 # ==================== Initialization Functions ====================
 
@@ -279,13 +260,15 @@ def main():
         import altair as alt
 
         boxplot_chart = alt.Chart(boxplot_df).mark_boxplot(
-            size=30
+            size=15
         ).encode(
-            x=alt.X('Time:N', sort=league_df['short_name'].tolist()),
+            x=alt.X('Time:N', sort=league_df['short_name'].tolist(), axis=alt.Axis(labelAngle=-45)),
             y=alt.Y('Pontos:Q', scale=alt.Scale(zero=False)),
             color=alt.Color('Time:N', legend=None)
         ).properties(
             height=400
+        ).configure_view(
+            strokeWidth=0
         )
 
         st.altair_chart(boxplot_chart, use_container_width=True)
@@ -349,7 +332,9 @@ def main():
         expw_chart = alt.Chart(expw_chart_data).mark_bar().encode(
             x=alt.X('Time:N', sort=None, title='Time'),
             y=alt.Y('Vitórias:Q', title='Número de Vitórias'),
-            color=alt.Color('Tipo:N', scale=alt.Scale(domain=['Wins', 'Expected Wins'], range=['#1f77b4', '#17becf'])),
+            color=alt.Color('Tipo:N',
+                          scale=alt.Scale(domain=['Wins', 'Expected Wins'], range=['#1f77b4', '#17becf']),
+                          legend=alt.Legend(title='Tipo', orient='top')),
             xOffset='Tipo:N'
         ).properties(
             height=500
@@ -425,7 +410,7 @@ def main():
             lines = alt.Chart(prob_chart_df[prob_chart_df['Marker'].isna()]).mark_line(strokeWidth=2).encode(
                 x=alt.X('Vitórias:Q', title='Número de Vitórias'),
                 y=alt.Y('Probabilidade:Q', title='Probabilidade'),
-                color=alt.Color('Time:N', legend=alt.Legend(title='Time'))
+                color=alt.Color('Time:N', legend=alt.Legend(title='Time', orient='top'))
             )
 
             # Create markers for actual wins
