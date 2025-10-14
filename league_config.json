@@ -7,9 +7,9 @@
         {"short_name": "JetEagles", "seed": 4},
         {"short_name": "Gamblers", "seed": 5},
         {"short_name": "Farmers", "seed": 6},
-        {"short_name": "Pombos", "seed": 7},
-        {"short_name": "Quasars", "seed": 8},
-        {"short_name": "Vetter's", "seed": 9},
+        {"short_name": "Quasars", "seed": 7},
+        {"short_name": "Vetter's", "seed": 8},
+        {"short_name": "Pombos", "seed": 9},
         {"short_name": "Spartans", "seed": 10},
         {"short_name": "CottonPickers", "seed": 11},
         {"short_name": "Foxes", "seed": 12}
