@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import requests as rq
 import json
 
-from src.Team import Team, WeekPerformance
+from Classes.Team import Team, WeekPerformance
 
 class FantasyLeague:
     def __init__(self, from_json=None, league_id=None, seeding=None, divisions=None):
@@ -21,8 +21,6 @@ class FantasyLeague:
         self.teams = {}
         self.retrieve_teams(seeding, divisions)
         self.retrieve_scoring()
-        for team in self.teams.values():
-            team.calculate_metrics()
 
     def retrieve_teams(self, seeding, divisions):
         # Fetch users data
@@ -143,4 +141,38 @@ class FantasyLeague:
                     week_perf = WeekPerformance(week, points, rank, adversary_points, adversary_rank)
                     team.insert_week(week_perf)
 
+    def getTeamsData(self):
+        teamsData=[]
+        for team in self.teams.values():
+            teamsData.append(team.to_dict())
+        return teamsData
     
+    def getCurrentWeek(self):
+        return self.current_week
+
+    def getWeekScores(self, week):
+        week_scores = []
+        for team in self.teams.values():
+            week_scores.append({
+                "short_name": team.short_name,
+                **team.getWeek(week)
+            })
+        return week_scores
+
+    def getTeamScores(self, short_name):
+        for team in self.teams.values():
+            if team.short_name == short_name:
+                return team.getPoints()
+        return []
+
+    def getScoringDf(self):
+        data = []
+        for week in range(1, self.current_week):
+            data.extend([
+                {"week": week,**score}
+                for score in self.getWeekScores(week)
+            ])
+        return pd.DataFrame(data)
+    
+    def getTeamsDf(self):
+        return pd.DataFrame(self.getTeamsData())
