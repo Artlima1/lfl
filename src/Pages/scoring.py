@@ -2,21 +2,15 @@ import streamlit as st
 import pandas as pd
 
 
-def render_scoring(league, league_df, scores_df):
-    """Render the PontuaÁ„o Semanal tab."""
-    st.header("PontuaÁ„o Semanal")
-
-    # Merge with team names
-    scores_with_names = scores_df.merge(
-        league_df[['roster_id', 'short_name']],
-        on='roster_id'
-    )
+def render_scoring(teams_df, scores_df):
+    """Render the Pontua√ß√£o Semanal tab."""
+    st.header("Pontua√ß√£o Semanal")
 
     # Create team selection checkboxes
     st.subheader("Selecione os Times")
 
     # Get unique teams sorted by name
-    teams = sorted(league_df['short_name'].unique())
+    teams = sorted(teams_df['short_name'].unique())
 
     # Create columns for checkboxes (3 columns layout)
     cols = st.columns(4)
@@ -32,12 +26,12 @@ def render_scoring(league, league_df, scores_df):
 
     # Filter data based on selected teams
     if selected_teams:
-        filtered_scores = scores_with_names[
-            scores_with_names['short_name'].isin(selected_teams)
+        filtered_scores = scores_df[
+            scores_df['short_name'].isin(selected_teams)
         ]
 
         # Create points line chart
-        st.subheader("PontuaÁ„o por Semana")
+        st.subheader("Pontua√ß√£o por Semana")
 
         # Pivot data for better chart formatting
         points_chart_data = filtered_scores.pivot(
@@ -60,4 +54,4 @@ def render_scoring(league, league_df, scores_df):
 
         st.line_chart(rank_chart_data, height=500)
     else:
-        st.warning("† Selecione pelo menos um time para visualizar o gr·fico.")
+        st.warning("Selecione pelo menos um time para visualizar o gr√°fico.")

@@ -1,13 +1,13 @@
-from src.FantasyLeague import FantasyLeague
-from src.Pages.dashboard import render_dashboard
-from src.Pages.scoring import render_scoring
-from src.Pages.performance import render_performance
-from src.Pages.expected_wins import render_expected_wins
+from Classes.FantasyLeague import FantasyLeague
+from Pages.dashboard import render_dashboard
+from Pages.scoring import render_scoring
+from Pages.performance import render_performance
+from Pages.expected_wins import render_expected_wins
 import streamlit as st
 import pandas as pd
 
 # ==================== Configuration ====================
-CONFIG_FILE = 'league_config.json'
+CONFIG_FILE = './league_config.json'
 
 # ==================== Initialization Functions ====================
 
@@ -15,28 +15,7 @@ CONFIG_FILE = 'league_config.json'
 def init_league():
     """Initialize the Fantasy League from JSON configuration."""
     league = FantasyLeague(from_json=CONFIG_FILE)
-    return league
-
-@st.cache_data
-def load_league_data(_league):
-    """Load and compile all league data. Cached to avoid repeated API calls."""
-    _league.compile_league_data()
-    return _league.get_league_df()
-
-@st.cache_data
-def get_scores_data(_league):
-    """Get scores dataframe from the league."""
-    return _league.scores_df
-
-@st.cache_data
-def get_probability_data(_league):
-    """Get probability dataframe from the league."""
-    return _league.prob_df
-
-@st.cache_data
-def get_current_week(_league):
-    """Get the current week number."""
-    return _league.current_week
+    return (league, league.getTeamsDf(), league.getScoringDf())
 
 # ==================== Page Configuration ====================
 
@@ -60,21 +39,15 @@ def main():
 
     # Initialize league and load data
     with st.spinner("Loading league data..."):
-        league = init_league()
-        league_df = load_league_data(league)
-        current_week = get_current_week(league)
+        (league, teams_df, scoring_df) = init_league()
 
     # Store data in session state for later use
     if 'league' not in st.session_state:
         st.session_state.league = league
-    if 'league_df' not in st.session_state:
-        st.session_state.league_df = league_df
-    if 'current_week' not in st.session_state:
-        st.session_state.current_week = current_week
-
-    # Get data needed for all tabs
-    scores_df = get_scores_data(league)
-    prob_df = get_probability_data(league)
+    if 'teams_df' not in st.session_state:
+        st.session_state.teams_df = teams_df
+    if 'scoring_df' not in st.session_state:
+        st.session_state.scoring_df = scoring_df
 
     # Create tabs
     tab1, tab2, tab3, tab4 = st.tabs([
@@ -85,16 +58,16 @@ def main():
     ])
 
     with tab1:
-        render_dashboard(league, league_df, scores_df)
+        render_dashboard(teams_df, scoring_df)
 
     with tab2:
-        render_scoring(league, league_df, scores_df)
+        render_scoring(teams_df, scoring_df)
 
     with tab3:
-        render_performance(league, league_df, scores_df)
+        render_performance(teams_df, scoring_df)
 
     with tab4:
-        render_expected_wins(league, league_df, prob_df)
+        render_expected_wins(teams_df, scoring_df)
 
 if __name__ == "__main__":
     main()

@@ -3,37 +3,29 @@ import pandas as pd
 import altair as alt
 
 
-def render_performance(league, league_df, scores_df):
-    """Render the Gráficos de Desempenho tab."""
-    st.header("Gráficos de Desempenho")
-
-    # Merge with team names
-    scores_with_names = scores_df.merge(
-        league_df[['roster_id', 'short_name']],
-        on='roster_id'
-    )
+def render_performance(teams_df, scores_df):
+    """Render the Grï¿½ficos de Desempenho tab."""
+    st.header("Grï¿½ficos de Desempenho")
 
     # Boxplot using Streamlit
-    st.subheader("Boxplot de Pontuação por Time")
+    st.subheader("Boxplot de Pontuaï¿½ï¿½o por Time")
 
     # Prepare data for boxplot - need to reshape for proper display
-    boxplot_data = []
-    for _, team in league_df.iterrows():
-        team_scores = scores_df[scores_df['roster_id'] == team['roster_id']]['points'].values
-        for score in team_scores:
-            boxplot_data.append({
-                'Time': team['short_name'],
-                'Pontos': score
-            })
+    boxplot_df = (
+        scores_df
+        .rename(columns={'short_name': 'Time', 'points': 'Pontos'})
+        [['Time', 'Pontos']]
+    )
 
-    boxplot_df = pd.DataFrame(boxplot_data)
+    # Calculate median for sorting
+    median_order = boxplot_df.groupby('Time')['Pontos'].median().sort_values(ascending=True).index.tolist()
 
     # Use Altair through Streamlit for interactive boxplot
     boxplot_chart = alt.Chart(boxplot_df).mark_boxplot(
         size=15
     ).encode(
         x=alt.X('Time:N',
-               sort=league_df['short_name'].tolist(),
+               sort=median_order,
                axis=alt.Axis(labelAngle=-45, labelLimit=100, labelOverlap=False)),
         y=alt.Y('Pontos:Q', scale=alt.Scale(zero=False)),
         color=alt.Color('Time:N', legend=None)
@@ -51,10 +43,10 @@ def render_performance(league, league_df, scores_df):
     st.markdown("---")
 
     # Performance chart
-    st.subheader("Performance Média com Desvio Padrão")
+    st.subheader("Performance MÃ©dia com Desvio PadrÃ£o")
 
     # Sort by average for better visualization
-    perf_data = league_df.sort_values(by=['avg']).reset_index(drop=True)
+    perf_data = teams_df.sort_values(by=['avg']).reset_index(drop=True)
 
     # Create error bars data
     perf_chart_data = perf_data[['short_name', 'avg', 'std']].copy()
@@ -70,7 +62,7 @@ def render_performance(league, league_df, scores_df):
     )
 
     bars = base.mark_bar().encode(
-        y=alt.Y('avg:Q', title='Pontuação Média', scale=alt.Scale(domain=[80, 165], clamp=True)),
+        y=alt.Y('avg:Q', title='PontuaÃ§Ã£o MÃ©dia', scale=alt.Scale(domain=[80, 165], clamp=True)),
         color=alt.Color('short_name:N', legend=None)
     )
 

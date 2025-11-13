@@ -2,20 +2,28 @@ import streamlit as st
 import pandas as pd
 
 
-def render_dashboard(league, league_df, scores_df):
+def render_dashboard(teams_df, scores_df):
     """Render the Dashboard tab."""
     st.header("Dashboard")
 
     # League Standings Table
-    st.subheader("ClassificaÁ„o da Liga")
-
+    st.subheader("Classifica√ß√£o da Liga")
     # Select and rename columns for display
-    standings_df = league_df[['seed', 'short_name', 'wins', 'avg', 'std', 'exp_w', 'delta_w']].copy()
-    standings_df.columns = ['Seed', 'Time', 'VitÛrias', 'MÈdia', 'Desvio Padr„o', 'Expected Wins', 'Delta W']
+    standings_df = teams_df[['seed', 'short_name', 'wins', 'avg', 'std', 'expw']]\
+        .sort_values(by="seed")\
+        .rename(columns={
+            'seed': 'Seed',
+            'short_name': 'Time',
+            'wins': 'Vit√≥rias',
+            'avg': 'M√©dia',
+            'std': 'Desvio Padr√£o',
+            'expw': 'Expected Wins'
+        })
+    standings_df['Delta W'] =  standings_df['Vit√≥rias'] - standings_df['Expected Wins']
 
     # Round numeric columns for better display
-    standings_df['MÈdia'] = standings_df['MÈdia'].round(2)
-    standings_df['Desvio Padr„o'] = standings_df['Desvio Padr„o'].round(2)
+    standings_df['M√©dia'] = standings_df['M√©dia'].round(2)
+    standings_df['Desvio Padr√£o'] = standings_df['Desvio Padr√£o'].round(2)
     standings_df['Expected Wins'] = standings_df['Expected Wins'].round(2)
     standings_df['Delta W'] = standings_df['Delta W'].round(2)
 
@@ -27,9 +35,9 @@ def render_dashboard(league, league_df, scores_df):
         column_config={
             "Seed": st.column_config.NumberColumn("Seed", format="%d"),
             "Time": st.column_config.TextColumn("Time"),
-            "VitÛrias": st.column_config.NumberColumn("VitÛrias", format="%d"),
-            "MÈdia": st.column_config.NumberColumn("MÈdia", format="%.2f"),
-            "Desvio Padr„o": st.column_config.NumberColumn("Desvio Padr„o", format="%.2f"),
+            "Vit√≥rias": st.column_config.NumberColumn("Vit√≥rias", format="%d"),
+            "M√©dia": st.column_config.NumberColumn("M√©dia", format="%.2f"),
+            "Desvio Padr√£o": st.column_config.NumberColumn("Desvio Padr√£o", format="%.2f"),
             "Expected Wins": st.column_config.NumberColumn("Expected Wins", format="%.2f"),
             "Delta W": st.column_config.NumberColumn("Delta W", format="%.2f"),
         }
@@ -40,14 +48,8 @@ def render_dashboard(league, league_df, scores_df):
     # Weekly Score Leaderboards
     st.subheader("Leaderboard Semanal")
 
-    # Merge with team names
-    scores_with_names = scores_df.merge(
-        league_df[['roster_id', 'short_name']],
-        on='roster_id'
-    )
-
     # Get unique weeks sorted from most recent to oldest
-    weeks = sorted(scores_with_names['week'].unique(), reverse=True)
+    weeks = sorted(scores_df['week'].unique(), reverse=True)
 
     # Create grid layout - 3 columns per row
     num_cols = 3
@@ -60,16 +62,19 @@ def render_dashboard(league, league_df, scores_df):
                 st.markdown(f"**Semana {week}**")
 
                 # Get top scorers for this week
-                week_data = scores_with_names[scores_with_names['week'] == week].copy()
-                week_data = week_data.sort_values(by='points', ascending=False)
+                week_data = scores_df[scores_df['week'] == week]\
+                    .sort_values(by='points', ascending=False)\
+                    [['short_name', 'points']]\
+                    .rename(columns={
+                        'short_name': 'Time',
+                        'points': 'Pontos'
+                    })
 
                 # Display all teams for this week
-                leaderboard = week_data[['rank', 'short_name', 'points']].copy()
-                leaderboard.columns = ['#', 'Time', 'Pontos']
-                leaderboard['Pontos'] = leaderboard['Pontos'].round(2)
+                week_data['Pontos'] = week_data['Pontos'].round(2)
 
                 st.dataframe(
-                    leaderboard,
+                    week_data,
                     hide_index=True,
                     use_container_width=True
                 )

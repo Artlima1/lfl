@@ -5,26 +5,26 @@ import altair as alt
 from scipy.interpolate import make_interp_spline
 
 
-def render_expected_wins(league, league_df, prob_df):
+def render_expected_wins(teams_df, prob_df):
     """Render the Expected Wins tab."""
     st.header("Expected Wins")
 
     # Expected Wins Chart
-    st.subheader("Vit髍ias Reais vs Expected Wins")
+    st.subheader("Vit贸rias Reais vs Expected Wins")
 
     # Prepare data sorted by wins and exp_w
-    expw_data = league_df.sort_values(by=['wins', 'exp_w']).reset_index(drop=True)
+    expw_data = teams_df.sort_values(by=['wins', 'expw']).reset_index(drop=True)
 
     # Reshape data for grouped bar chart
     expw_chart_data = pd.DataFrame({
         'Time': list(expw_data['short_name']) * 2,
         'Tipo': ['Wins'] * len(expw_data) + ['Expected Wins'] * len(expw_data),
-        'Vit髍ias': list(expw_data['wins']) + list(expw_data['exp_w'])
+        'Vit贸rias': list(expw_data['wins']) + list(expw_data['expw'])
     })
 
     expw_chart = alt.Chart(expw_chart_data).mark_bar().encode(
         x=alt.X('Time:N', sort=None, title='Time'),
-        y=alt.Y('Vit髍ias:Q', title='N鷐ero de Vit髍ias'),
+        y=alt.Y('Vit贸rias:Q', title='N煤mero de Vit贸rias'),
         color=alt.Color('Tipo:N',
                       scale=alt.Scale(domain=['Wins', 'Expected Wins'], range=['#1f77b4', '#17becf']),
                       legend=alt.Legend(title='Tipo', orient='top')),
@@ -45,11 +45,11 @@ def render_expected_wins(league, league_df, prob_df):
     # Create checkboxes organized by division
     selected_teams = []
 
-    # Get unique divisions from league_df
-    divisions = league_df.groupby('division')['short_name'].apply(list).to_dict()
+    # Get unique divisions from teams_df
+    divisions = teams_df.groupby('division')['short_name'].apply(list).to_dict()
 
     for division_name, team_names in divisions.items():
-        st.markdown(f"**Divis鉶 {division_name}**")
+        st.markdown(f"**Divis茫o {division_name}**")
         cols = st.columns(4)
 
         for idx, team_name in enumerate(team_names):
@@ -66,27 +66,24 @@ def render_expected_wins(league, league_df, prob_df):
 
         for short_name in selected_teams:
             # Get roster_id and wins for this team
-            team_data = league_df[league_df['short_name'] == short_name]
-            roster_id = team_data['roster_id'].values[0]
+            team_data = teams_df[teams_df['short_name'] == short_name]
             wins = team_data['wins'].values[0]
-
+            prob_data = team_data["probNWins"].values[0]
             # Get probability data for this team
-            team_prob = prob_df[prob_df['roster_id'] == roster_id].sort_values('n_wins')
-            x_original = team_prob['n_wins'].values
-            data = team_prob['prob'].values
+            x_original = list(range(1,len(prob_data)+1))
 
             # Create a smooth x range for interpolation
-            x_smooth = np.linspace(x_original.min(), x_original.max(), 200)
+            x_smooth = np.linspace(min(x_original), max(x_original), 200)
 
             # Create a cubic spline interpolation
-            spline = make_interp_spline(x_original, data, k=2)
+            spline = make_interp_spline(x_original, prob_data, k=2)
             y_smooth = spline(x_smooth)
 
             # Add smoothed curve data
             for x, y in zip(x_smooth, y_smooth):
                 prob_chart_data.append({
                     'Time': short_name,
-                    'Vit髍ias': x,
+                    'Vit贸rias': x,
                     'Probabilidade': y,
                     'Marker': None
                 })
@@ -95,26 +92,26 @@ def render_expected_wins(league, league_df, prob_df):
             y_wins = spline(wins)
             prob_chart_data.append({
                 'Time': short_name,
-                'Vit髍ias': wins,
+                'Vit贸rias': wins,
                 'Probabilidade': y_wins,
-                'Marker': 'Vit髍ias Reais'
+                'Marker': 'Vit贸rias Reais'
             })
 
         prob_chart_df = pd.DataFrame(prob_chart_data)
 
         # Create line chart
         lines = alt.Chart(prob_chart_df[prob_chart_df['Marker'].isna()]).mark_line(strokeWidth=2).encode(
-            x=alt.X('Vit髍ias:Q', title='N鷐ero de Vit髍ias'),
+            x=alt.X('Vit贸rias:Q', title='N煤mero de Vit贸rias'),
             y=alt.Y('Probabilidade:Q', title='Probabilidade'),
             color=alt.Color('Time:N', legend=alt.Legend(title='Time', orient='top'))
         )
 
         # Create markers for actual wins
         markers = alt.Chart(prob_chart_df[prob_chart_df['Marker'].notna()]).mark_circle(size=100).encode(
-            x=alt.X('Vit髍ias:Q'),
+            x=alt.X('Vit贸rias:Q'),
             y=alt.Y('Probabilidade:Q'),
             color=alt.Color('Time:N', legend=None),
-            tooltip=['Time:N', 'Vit髍ias:Q', 'Probabilidade:Q']
+            tooltip=['Time:N', 'Vit贸rias:Q', 'Probabilidade:Q']
         )
 
         prob_chart = (lines + markers).properties(height=500)
