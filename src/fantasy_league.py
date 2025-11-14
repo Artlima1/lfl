@@ -1,10 +1,16 @@
-from Classes.FantasyLeague import FantasyLeague
-from Pages.dashboard import render_dashboard
-from Pages.scoring import render_scoring
-from Pages.performance import render_performance
-from Pages.expected_wins import render_expected_wins
 import streamlit as st
 import pandas as pd
+import sys
+
+# Add module paths before importing custom modules
+sys.path.append('./src/Classes')
+sys.path.append('./src/Pages')
+
+from FantasyLeague import FantasyLeague
+from dashboard import render_dashboard
+from scoring import render_scoring
+from performance import render_performance
+from expected_wins import render_expected_wins
 
 # ==================== Configuration ====================
 CONFIG_FILE = './league_config.json'

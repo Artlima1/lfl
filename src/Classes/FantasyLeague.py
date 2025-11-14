@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import requests as rq
 import json
 
-from Classes.Team import Team, WeekPerformance
+from Team import Team, WeekPerformance
 
 class FantasyLeague:
     def __init__(self, from_json=None, league_id=None, seeding=None, divisions=None):

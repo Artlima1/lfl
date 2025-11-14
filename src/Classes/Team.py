@@ -1,4 +1,4 @@
-from Classes.Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
+from Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
 
 class WeekPerformance:
     def __init__(self, week, points, rank, adversary_points, adversary_rank):
