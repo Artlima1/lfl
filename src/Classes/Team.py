@@ -1,10 +1,12 @@
-from Classes.Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
+from Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
 
 class WeekPerformance:
-    def __init__(self, week, points, rank, adversary_points, adversary_rank):
+    def __init__(self, week, points, rank, division_game, adversary_id, adversary_points, adversary_rank):
         self.week = week
         self.points = points
         self.rank = rank
+        self.division_game = division_game
+        self.adversary_id = adversary_id
         self.adversary_points = adversary_points
         self.adversary_rank = adversary_rank
         self.win = points > adversary_points
@@ -38,18 +40,41 @@ class MetricsManager:
         return {k: v.compute() for k, v in self.metrics.items()}
 
 class Team:
-    def __init__(self, team_name, roster_id, division, seed):
+    def __init__(self, team_name, roster_id, division):
         self.name = team_name
         self.short_name = team_name.split()[1]
         self.division = division
         self.roster_id = roster_id
-        self.seed = seed
+
         self.wins = 0
         self.losses = 0
+        self.league_seed = 0
+        self.division_seed = 0
 
         self._metrics_manager = MetricsManager()
-
         self._weekly_scores = []
+
+    def getDivisionRecord(self):
+        division_wins = 0
+        division_games = 0
+        for week in self._weekly_scores:
+            if week.division_game:
+                division_games += 1
+                if week.win:
+                    division_wins += 1
+        return (division_wins/division_games)
+
+    def getH2hRecord(self, other_team_id):
+        h2h_wins = 0
+        h2h_games = 0
+        for week in self._weekly_scores:
+            if week.adversary_id == other_team_id:
+                h2h_games += 1
+                if week.win:
+                    h2h_wins += 1
+        if h2h_games == 0:
+            return -1
+        return (h2h_wins / h2h_games)
 
     def insert_week(self, week: WeekPerformance):
         self._weekly_scores.append(week)
@@ -77,7 +102,8 @@ class Team:
             "short_name": self.short_name,
             "division": self.division,
             "roster_id": self.roster_id,
-            "seed": self.seed,
+            "seed": self.league_seed,
+            "division_seed": self.division_seed,
             "wins": self.wins,
             "losses": self.losses,
             **self._metrics_manager.to_dict()
