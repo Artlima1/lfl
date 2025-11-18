@@ -64,22 +64,34 @@ class SeedCalculator:
         3. Head-to-head record
         4. Expected wins
         """
+        # 1: Record
         if t1.wins > t2.wins:
             return 1
         elif t1.wins < t2.wins:
             return -1
         
-        if t1.division_seed < t2.division_seed:
-            return 1
-        elif t1.division_seed > t2.division_seed:
-            return -1
+        # 2: If same division, use in-division seeding
+        if t1.division == t2.division:
+            if t1.division_seed < t2.division_seed:
+                return 1
+            elif t1.division_seed > t2.division_seed:
+                return -1
+            
+        # 3: If one of them is #1 seed in division and the other not
+        elif t1.division_seed == 1 or t2.division_seed == 1:
+            if t1.division_seed == 1 and t2.division_seed != 1:
+                return 1
+            elif t1.division_seed != 1 and t2.division_seed == 1:
+                return -1
         
+        # 4: H2H
         h2h = t1.getH2hRecord(t2.roster_id)
         if h2h > 0.5:
             return 1
         elif 0 <= h2h < 0.5:
             return -1
 
+        # 4: Expected W
         expw1 = t1.to_dict().get("expw", None)
         expw2 = t2.to_dict().get("expw", None)
         if expw1 > expw2:
@@ -124,3 +136,14 @@ class SeedCalculator:
         # Assign league seeds directly to team objects
         for i, team in enumerate(teams_list):
             team.league_seed = i + 1
+
+""" 
+class SeedCriteria:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def calculate(t1, t2):
+        pass
+
+class RecordCriteria() """
