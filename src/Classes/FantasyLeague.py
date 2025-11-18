@@ -5,7 +5,7 @@ import requests as rq
 import json
 
 from Team import Team, WeekPerformance
-from Classes.SeedEngine import SeedEngine
+from Classes.SeedEngine import SeedEngine, LFLDivisionSeeder, LFLLeagueSeeder
 
 class FantasyLeague:
     def __init__(self, from_json=None, league_id=None, divisions=None):
@@ -19,13 +19,16 @@ class FantasyLeague:
             self.league_id = league_id
 
         self.teams = {}
-        self.seeding_calculator = SeedEngine()
+        # Initialize with LFL-specific seeders
+        division_seeder = LFLDivisionSeeder()
+        league_seeder = LFLLeagueSeeder()
+        self.seeding_engine = SeedEngine(division_seeder, league_seeder)
         self.retrieve_teams(divisions)
         self.retrieve_scoring()
         self.update_seeding()
 
     def update_seeding(self):
-        self.seeding_calculator.calculate_and_update_seeding(self.teams)
+        self.seeding_engine.calculate_and_update_seeding(self.teams)
 
     def retrieve_teams(self, divisions):
         # Fetch users data

@@ -113,7 +113,7 @@ class SameDivisionCriteria(SeedCriteria):
         return 0
 
 
-class FirstInDivisionCriteria(SeedCriteria):
+class DivisionLeaderCriteria(SeedCriteria):
     """
     Special criteria: Prioritize teams that are first in their division.
     Only applies when one team is #1 seed and the other is not.
@@ -178,22 +178,10 @@ class Seeder(ABC):
 
 class DivisionSeeder(Seeder):
     """
-    Seeder for within-division rankings.
-
-    Tiebreaker order:
-    1. Record (wins)
-    2. Head-to-head record
-    3. Division record
-    4. Expected wins
+    Abstract base class for division seeding.
+    Provides generic implementation for calculating division seeds.
+    Subclasses should define their own criteria chain.
     """
-
-    def __init__(self):
-        super().__init__(criteria_chain=[
-            RecordCriteria,
-            H2HCriteria,
-            DivisionRecordCriteria,
-            ExpectedWinsCriteria
-        ])
 
     def calculate_and_update_seeding(self, teams):
         """
@@ -224,26 +212,32 @@ class DivisionSeeder(Seeder):
                 team.division_seed = i + 1
 
 
-class LeagueSeeder(Seeder):
+class LFLDivisionSeeder(DivisionSeeder):
     """
-    Seeder for league-wide rankings.
+    LFL-specific division seeder.
 
     Tiebreaker order:
     1. Record (wins)
-    2. If same division: use division seed
-    3. If one is #1 in division: prioritize division winners
-    4. Head-to-head record
-    5. Expected wins
+    2. Head-to-head record
+    3. Division record
+    4. Expected wins
     """
 
     def __init__(self):
         super().__init__(criteria_chain=[
             RecordCriteria,
-            SameDivisionCriteria,
-            FirstInDivisionCriteria,
             H2HCriteria,
+            DivisionRecordCriteria,
             ExpectedWinsCriteria
         ])
+
+
+class LeagueSeeder(Seeder):
+    """
+    Abstract base class for league-wide seeding.
+    Provides generic implementation for calculating league seeds.
+    Subclasses should define their own criteria chain.
+    """
 
     def calculate_and_update_seeding(self, teams):
         """
@@ -267,19 +261,48 @@ class LeagueSeeder(Seeder):
             team.league_seed = i + 1
 
 
+class LFLLeagueSeeder(LeagueSeeder):
+    """
+    LFL-specific league seeder.
+
+    Tiebreaker order:
+    1. Record (wins)
+    2. If same division: use division seed
+    3. If one is #1 in division: prioritize division winners
+    4. Head-to-head record
+    5. Expected wins
+    """
+
+    def __init__(self):
+        super().__init__(criteria_chain=[
+            RecordCriteria,
+            SameDivisionCriteria,
+            DivisionLeaderCriteria,
+            H2HCriteria,
+            ExpectedWinsCriteria
+        ])
+
+
 # ============================================================================
-# LEGACY SUPPORT (for backward compatibility)
+# SEED ENGINE
 # ============================================================================
 
 class SeedEngine:
     """
-    Legacy class that maintains the original interface.
-    Internally uses DivisionSeeder and LeagueSeeder.
+    Generic seed engine that orchestrates division and league seeding.
+    Accepts any DivisionSeeder and LeagueSeeder implementations.
     """
 
-    def __init__(self):
-        self.division_seeder = DivisionSeeder()
-        self.league_seeder = LeagueSeeder()
+    def __init__(self, division_seeder=None, league_seeder=None):
+        """
+        Initialize the SeedEngine with custom seeders.
+
+        Args:
+            division_seeder: DivisionSeeder instance
+            league_seeder: LeagueSeeder instance
+        """
+        self.division_seeder = division_seeder
+        self.league_seeder = league_seeder
 
     def calculate_and_update_seeding(self, teams):
         """
