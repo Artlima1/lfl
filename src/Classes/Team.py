@@ -1,4 +1,4 @@
-from Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
+from Metrics import MedianMetric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
 
 class WeekPerformance:
     def __init__(self, week, points, rank, division_game, adversary_id, adversary_points, adversary_rank):
@@ -29,15 +29,19 @@ class MetricsManager:
 
     def update(self, weeks: list[WeekPerformance]):
         points = [week.points for week in weeks]
-        winProbs = [(12-week.rank)/11 for week in weeks]
+        cewProbs = [(12-week.rank)/11 for week in weeks]
+        sewProbs = [(week.adversary_rank-1)/11 for week in weeks]
 
         self.metrics["avg"] = AverageMetric(values=points)
         self.metrics["std"] = StdDevMetric(values=points)
-        self.metrics["expw"] = ExpectedWinsMetric(values=winProbs)
-        self.metrics["probNWins"] = ProbNWins(values=winProbs)
+        self.metrics["med"] = MedianMetric(values=points)
+        self.metrics["last5"] = AverageMetric(values=points[-5:])
+        self.metrics["CEW"] = ExpectedWinsMetric(values=cewProbs)
+        self.metrics["SEW"] = ExpectedWinsMetric(values=sewProbs)
+        self.metrics["probNWins"] = ProbNWins(values=cewProbs)
 
     def to_dict(self):
-        return {k: v.compute() for k, v in self.metrics.items()}
+        return {k: v.value for k, v in self.metrics.items()}
 
 class Team:
     def __init__(self, team_name, roster_id, division):

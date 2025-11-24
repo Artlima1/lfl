@@ -75,8 +75,8 @@ class ExpectedWinsCriteria(SeedCriteria):
 
     @staticmethod
     def calculate(t1, t2):
-        expw1 = t1.to_dict().get("expw", None)
-        expw2 = t2.to_dict().get("expw", None)
+        expw1 = t1.to_dict().get("CEW", None)
+        expw2 = t2.to_dict().get("CEW", None)
         if expw1 > expw2:
             return 1
         elif expw1 < expw2:
