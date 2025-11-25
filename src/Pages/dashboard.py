@@ -72,17 +72,23 @@ def render_dashboard(teams_df, scores_df):
                 # Get top scorers for this week
                 week_data = scores_df[scores_df['week'] == week]\
                     .sort_values(by='points', ascending=False)\
-                    [['short_name', 'points']]\
+                    [['short_name', 'points', "win"]]\
                     .rename(columns={
                         'short_name': 'Time',
-                        'points': 'Pontos'
+                        'points': 'Pontos',
+                        'win': 'Resultado'
                     })
 
                 # Display all teams for this week
                 week_data['Pontos'] = week_data['Pontos'].round(2)
+                week_data['Resultado'] = week_data['Resultado'].map({True: 'W', False: 'L'})
 
                 st.dataframe(
                     week_data,
                     hide_index=True,
-                    use_container_width=True
+                    use_container_width=True,
+                    column_config={
+                        col: st.column_config.TextColumn(col, width="small") 
+                        for col in week_data.columns[1:]
+                    }
                 )
