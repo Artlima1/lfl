@@ -11,6 +11,7 @@ from dashboard import render_dashboard
 from scoring import render_scoring
 from performance import render_performance
 from expected_wins import render_expected_wins
+from seeding import render_seeding
 
 # ==================== Configuration ====================
 CONFIG_FILE = './league_config.json'
@@ -21,7 +22,7 @@ CONFIG_FILE = './league_config.json'
 def init_league():
     """Initialize the Fantasy League from JSON configuration."""
     league = FantasyLeague(from_json=CONFIG_FILE)
-    return (league, league.getTeamsDf(), league.getScoringDf())
+    return (league, league.getTeamsDf(), league.getScoringDf(), league.getH2hDf())
 
 # ==================== Page Configuration ====================
 
@@ -45,7 +46,7 @@ def main():
 
     # Initialize league and load data
     with st.spinner("Loading league data..."):
-        (league, teams_df, scoring_df) = init_league()
+        (league, teams_df, scoring_df, h2h_df) = init_league()
 
     # Store data in session state for later use
     if 'league' not in st.session_state:
@@ -54,10 +55,12 @@ def main():
         st.session_state.teams_df = teams_df
     if 'scoring_df' not in st.session_state:
         st.session_state.scoring_df = scoring_df
-
+    if 'h2h_df' not in st.session_state:
+        st.session_state.h2h_df = h2h_df
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Dashboard",
+        "🔢 Seeding",
         "📈 Pontuação Semanal",
         "📉 Gráficos de Desempenho",
         "🎯 Expected Wins"
@@ -67,12 +70,15 @@ def main():
         render_dashboard(teams_df, scoring_df)
 
     with tab2:
-        render_scoring(teams_df, scoring_df)
+        render_seeding(teams_df, h2h_df)
 
     with tab3:
-        render_performance(teams_df, scoring_df)
+        render_scoring(teams_df, scoring_df)
 
     with tab4:
+        render_performance(teams_df, scoring_df)
+
+    with tab5:
         render_expected_wins(teams_df, scoring_df)
 
 if __name__ == "__main__":

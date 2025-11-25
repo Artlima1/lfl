@@ -5,7 +5,7 @@ import requests as rq
 import json
 
 from Team import Team, WeekPerformance
-from Classes.SeedEngine import SeedEngine, LFLDivisionSeeder, LFLLeagueSeeder
+from SeedEngine import SeedEngine, LFLDivisionSeeder, LFLLeagueSeeder
 
 class FantasyLeague:
     def __init__(self, from_json=None, league_id=None, divisions=None):
@@ -179,3 +179,12 @@ class FantasyLeague:
     
     def getTeamsDf(self):
         return pd.DataFrame(self.getTeamsData())
+    
+    def getH2hDf(self):
+        h2h_array = []
+        for team in self.teams.values():
+            team_h2h = {}
+            for adv in self.teams.values():
+                team_h2h[f"vs {adv.short_name}"] = team.getH2hRecord(adv.roster_id)
+            h2h_array.append({"Team": team.short_name, **team_h2h})
+        return pd.DataFrame(h2h_array)

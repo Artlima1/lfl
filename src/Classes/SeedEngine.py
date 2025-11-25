@@ -63,9 +63,11 @@ class DivisionRecordCriteria(SeedCriteria):
     def calculate(t1, t2):
         div_rec1 = t1.getDivisionRecord()
         div_rec2 = t2.getDivisionRecord()
-        if div_rec1 > div_rec2:
+        div_perc1 = div_rec1[0] / (div_rec1[0] + div_rec1[1]) if (div_rec1[0] + div_rec1[1]) > 0 else 0
+        div_perc2 = div_rec2[0] / (div_rec2[0] + div_rec2[1]) if (div_rec2[0] + div_rec2[1]) > 0 else 0
+        if div_perc1 > div_perc2:
             return 1
-        elif div_rec1 < div_rec2:
+        elif div_perc1 < div_perc2:
             return -1
         return 0
 

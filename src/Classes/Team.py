@@ -60,13 +60,14 @@ class Team:
 
     def getDivisionRecord(self):
         division_wins = 0
-        division_games = 0
+        division_losses = 0
         for week in self._weekly_scores:
             if week.division_game:
-                division_games += 1
                 if week.win:
                     division_wins += 1
-        return (division_wins/division_games)
+                else:
+                    division_losses += 1
+        return (division_wins,division_losses)
 
     def getH2hRecord(self, other_team_id):
         h2h_wins = 0
@@ -101,6 +102,7 @@ class Team:
         return [week.rank for week in self._weekly_scores]
 
     def to_dict(self):
+        rec = self.getDivisionRecord()
         return {
             "name": self.name,
             "short_name": self.short_name,
@@ -110,5 +112,7 @@ class Team:
             "division_seed": self.division_seed,
             "wins": self.wins,
             "losses": self.losses,
+            "record": f"{self.wins}-{self.losses}",
+            "division_record": f"{rec[0]}-{rec[1]}",
             **self._metrics_manager.to_dict()
         }
