@@ -1,5 +1,5 @@
 {
-    "league_id": 1238157874098618368,
+    "league_id": 1380299867737296896,
     "seeding": [
         {"short_name": "Flyers", "seed": 1},
         {"short_name": "Roludos", "seed": 2},
@@ -17,15 +17,15 @@
     "divisions": [
         {
             "name": "COMI",
-            "team_names": ["Quasars", "Spartans", "Gamblers", "Flyers"]
+            "team_names": ["Foxes", "CottonPickers", "Pombos", "Spartans"]
         },
         {
             "name": "SEU",
-            "team_names": ["JetEagles", "Roludos", "Vetter's", "Foxes"]
+            "team_names": ["Gamblers", "Flyers", "Vetter's", "Quasars"]
         },
         {
             "name": "PAI",
-            "team_names": ["SuperBowlers", "CottonPickers", "Pombos", "Farmers"]
+            "team_names": ["SuperBowlers", "JetEagles", "Roludos", "Farmers"]
         }
     ]
 }
