@@ -24,6 +24,7 @@ class FantasyLeague:
         league_seeder = LFLLeagueSeeder()
         self.seeding_engine = SeedEngine(division_seeder, league_seeder)
         self.retrieve_teams(divisions)
+        self.retrieve_league_settings()
         self.retrieve_scoring()
         self.update_seeding()
 
@@ -80,6 +81,12 @@ class FantasyLeague:
                 for team in teams.values():
                     if team.division == division_name:
                         self.division_map[division_name].append(team.roster_id)
+
+    def retrieve_league_settings(self):
+        response = rq.get('https://api.sleeper.app/v1/league/{}'.format(self.league_id))
+        data = json.loads(response.text)
+        self.season_year = int(data.get('season'))
+        self.playoff_week_start = data.get('settings', {}).get('playoff_week_start', 15)
 
     def retrieve_scoring(self):
         # Get current week
@@ -180,17 +187,27 @@ class FantasyLeague:
     def getTeamsDf(self):
         return pd.DataFrame(self.getTeamsData())
     
-    def getOwnerH2hGames(self):
+    def getMatchRecords(self):
+        """Return this season's games as single-direction match records
+        (year, week, playoff flag, both owner_ids and both point totals),
+        for LeagueHistory to fold into the all-time match list."""
         roster_to_owner = {t.roster_id: t.owner_id for t in self.teams.values()}
         games = []
         for team in self.teams.values():
             for week in team.getWeeklyScores():
-                if week.adversary_id is None:
+                if week.adversary_id is None or team.roster_id > week.adversary_id:
+                    continue  # skip byes and the duplicate side of each matchup
+                adversary_owner = roster_to_owner.get(week.adversary_id)
+                if team.owner_id is None or adversary_owner is None:
                     continue
                 games.append({
-                    "owner_id": team.owner_id,
-                    "adversary_owner_id": roster_to_owner.get(week.adversary_id),
-                    "win": week.win,
+                    "year": self.season_year,
+                    "week": week.week,
+                    "playoff": week.week >= self.playoff_week_start,
+                    "team_a_owner": team.owner_id,
+                    "team_b_owner": adversary_owner,
+                    "team_a_points": week.points,
+                    "team_b_points": week.adversary_points,
                 })
         return games
 

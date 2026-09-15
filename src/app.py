@@ -32,7 +32,7 @@ def init_league_history():
     league, teams_df, scoring_df, h2h_df = init_league()
     history = LeagueHistory(
         from_json=CONFIG_FILE,
-        current_season_games=league.getOwnerH2hGames(),
+        current_season_games=league.getMatchRecords(),
     )
     return (history, history.getAllTimeH2hDf(teams_df))
 
@@ -72,33 +72,48 @@ def main():
         st.session_state.scoring_df = scoring_df
     if 'h2h_df' not in st.session_state:
         st.session_state.h2h_df = h2h_df
-    # Create tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    # Navigation — using st.segmented_control (not st.tabs) because its
+    # selection is tracked in st.session_state and survives reruns triggered
+    # by widgets inside a section. st.tabs' active tab lives only in the
+    # frontend and can reset to the first tab when a widget inside a
+    # non-first tab triggers a rerun (a known Streamlit limitation).
+    section_labels = [
         "📊 Dashboard",
         "🔢 Seeding",
         "📈 Pontuação Semanal",
         "📉 Gráficos de Desempenho",
         "🎯 Expected Wins",
         "🏆 Histórico da Liga"
-    ])
+    ]
+    selected_section = st.segmented_control(
+        "Navegação",
+        section_labels,
+        default=section_labels[0],
+        key="active_section",
+        label_visibility="collapsed"
+    )
+    if selected_section is None:
+        selected_section = section_labels[0]
 
-    with tab1:
+    st.markdown("---")
+
+    if selected_section == "📊 Dashboard":
         render_dashboard(teams_df, scoring_df)
 
-    with tab2:
+    elif selected_section == "🔢 Seeding":
         render_seeding(teams_df, h2h_df)
 
-    with tab3:
+    elif selected_section == "📈 Pontuação Semanal":
         render_scoring(teams_df, scoring_df)
 
-    with tab4:
+    elif selected_section == "📉 Gráficos de Desempenho":
         render_performance(teams_df, scoring_df)
 
-    with tab5:
+    elif selected_section == "🎯 Expected Wins":
         render_expected_wins(teams_df, scoring_df)
 
-    with tab6:
-        render_league_history(all_time_h2h_df)
+    elif selected_section == "🏆 Histórico da Liga":
+        render_league_history(all_time_h2h_df, league_history, teams_df)
 
 if __name__ == "__main__":
     main()
