@@ -13,13 +13,13 @@ def render_expected_wins(teams_df, prob_df):
     st.subheader("Vitórias Reais vs Expected Wins")
 
     # Prepare data sorted by wins and exp_w
-    expw_data = teams_df.sort_values(by=['wins', 'expw']).reset_index(drop=True)
+    expw_data = teams_df.sort_values(by=['wins', 'CEW']).reset_index(drop=True)
 
     # Reshape data for grouped bar chart
     expw_chart_data = pd.DataFrame({
         'Time': list(expw_data['short_name']) * 2,
         'Tipo': ['Wins'] * len(expw_data) + ['Expected Wins'] * len(expw_data),
-        'Vitórias': list(expw_data['wins']) + list(expw_data['expw'])
+        'Vitórias': list(expw_data['wins']) + list(expw_data['CEW'])
     })
 
     expw_chart = alt.Chart(expw_chart_data).mark_bar().encode(

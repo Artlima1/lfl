@@ -1,4 +1,4 @@
-from Metrics import Metric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
+from Metrics import MedianMetric, AverageMetric, StdDevMetric, ExpectedWinsMetric, ProbNWins
 
 class WeekPerformance:
     def __init__(self, week, points, rank, division_game, adversary_id, adversary_points, adversary_rank):
@@ -29,15 +29,19 @@ class MetricsManager:
 
     def update(self, weeks: list[WeekPerformance]):
         points = [week.points for week in weeks]
-        winProbs = [(12-week.rank)/11 for week in weeks]
+        cewProbs = [(12-week.rank)/11 for week in weeks]
+        sewProbs = [(week.adversary_rank-1)/11 for week in weeks]
 
         self.metrics["avg"] = AverageMetric(values=points)
         self.metrics["std"] = StdDevMetric(values=points)
-        self.metrics["expw"] = ExpectedWinsMetric(values=winProbs)
-        self.metrics["probNWins"] = ProbNWins(values=winProbs)
+        self.metrics["med"] = MedianMetric(values=points)
+        self.metrics["last5"] = AverageMetric(values=points[-5:])
+        self.metrics["CEW"] = ExpectedWinsMetric(values=cewProbs)
+        self.metrics["SEW"] = ExpectedWinsMetric(values=sewProbs)
+        self.metrics["probNWins"] = ProbNWins(values=cewProbs)
 
     def to_dict(self):
-        return {k: v.compute() for k, v in self.metrics.items()}
+        return {k: v.value for k, v in self.metrics.items()}
 
 class Team:
     def __init__(self, team_name, roster_id, division):
@@ -56,13 +60,14 @@ class Team:
 
     def getDivisionRecord(self):
         division_wins = 0
-        division_games = 0
+        division_losses = 0
         for week in self._weekly_scores:
             if week.division_game:
-                division_games += 1
                 if week.win:
                     division_wins += 1
-        return (division_wins/division_games)
+                else:
+                    division_losses += 1
+        return (division_wins,division_losses)
 
     def getH2hRecord(self, other_team_id):
         h2h_wins = 0
@@ -97,6 +102,7 @@ class Team:
         return [week.rank for week in self._weekly_scores]
 
     def to_dict(self):
+        rec = self.getDivisionRecord()
         return {
             "name": self.name,
             "short_name": self.short_name,
@@ -106,5 +112,7 @@ class Team:
             "division_seed": self.division_seed,
             "wins": self.wins,
             "losses": self.losses,
+            "record": f"{self.wins}-{self.losses}",
+            "division_record": f"{rec[0]}-{rec[1]}",
             **self._metrics_manager.to_dict()
         }

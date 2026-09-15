@@ -5,7 +5,7 @@ import requests as rq
 import json
 
 from Team import Team, WeekPerformance
-from SeedCalculator import SeedCalculator
+from SeedEngine import SeedEngine, LFLDivisionSeeder, LFLLeagueSeeder
 
 class FantasyLeague:
     def __init__(self, from_json=None, league_id=None, divisions=None):
@@ -19,13 +19,16 @@ class FantasyLeague:
             self.league_id = league_id
 
         self.teams = {}
-        self.seeding_calculator = SeedCalculator()
+        # Initialize with LFL-specific seeders
+        division_seeder = LFLDivisionSeeder()
+        league_seeder = LFLLeagueSeeder()
+        self.seeding_engine = SeedEngine(division_seeder, league_seeder)
         self.retrieve_teams(divisions)
         self.retrieve_scoring()
         self.update_seeding()
 
     def update_seeding(self):
-        self.seeding_calculator.calculate_and_update_seeding(self.teams)
+        self.seeding_engine.calculate_and_update_seeding(self.teams)
 
     def retrieve_teams(self, divisions):
         # Fetch users data
@@ -176,3 +179,12 @@ class FantasyLeague:
     
     def getTeamsDf(self):
         return pd.DataFrame(self.getTeamsData())
+    
+    def getH2hDf(self):
+        h2h_array = []
+        for team in self.teams.values():
+            team_h2h = {}
+            for adv in self.teams.values():
+                team_h2h[f"vs {adv.short_name}"] = team.getH2hRecord(adv.roster_id)
+            h2h_array.append({"Team": team.short_name, **team_h2h})
+        return pd.DataFrame(h2h_array)
