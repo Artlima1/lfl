@@ -64,7 +64,7 @@ class FantasyLeague:
 
                 division = division_by_team.get(short_name)
 
-                team = Team(team_name, roster_id, division)
+                team = Team(team_name, roster_id, division, user_id)
                 teams[roster_id] = team
 
         self.teams = teams
@@ -180,6 +180,20 @@ class FantasyLeague:
     def getTeamsDf(self):
         return pd.DataFrame(self.getTeamsData())
     
+    def getOwnerH2hGames(self):
+        roster_to_owner = {t.roster_id: t.owner_id for t in self.teams.values()}
+        games = []
+        for team in self.teams.values():
+            for week in team.getWeeklyScores():
+                if week.adversary_id is None:
+                    continue
+                games.append({
+                    "owner_id": team.owner_id,
+                    "adversary_owner_id": roster_to_owner.get(week.adversary_id),
+                    "win": week.win,
+                })
+        return games
+
     def getH2hDf(self):
         h2h_array = []
         for team in self.teams.values():

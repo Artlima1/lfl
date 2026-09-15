@@ -44,11 +44,12 @@ class MetricsManager:
         return {k: v.value for k, v in self.metrics.items()}
 
 class Team:
-    def __init__(self, team_name, roster_id, division):
+    def __init__(self, team_name, roster_id, division, owner_id):
         self.name = team_name
         self.short_name = team_name.split()[1]
         self.division = division
         self.roster_id = roster_id
+        self.owner_id = owner_id
 
         self.wins = 0
         self.losses = 0
@@ -90,6 +91,9 @@ class Team:
         self._weekly_scores.sort(key=lambda x: x.week)
         self._metrics_manager.update(self._weekly_scores)
 
+    def getWeeklyScores(self):
+        return list(self._weekly_scores)
+
     def getWeek(self, week):
         if week <= len(self._weekly_scores):
             return self._weekly_scores[week - 1].to_dict()
@@ -108,6 +112,7 @@ class Team:
             "short_name": self.short_name,
             "division": self.division,
             "roster_id": self.roster_id,
+            "owner_id": self.owner_id,
             "seed": self.league_seed,
             "division_seed": self.division_seed,
             "wins": self.wins,

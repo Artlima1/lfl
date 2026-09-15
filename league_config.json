@@ -27,5 +27,13 @@
             "name": "PAI",
             "team_names": ["SuperBowlers", "JetEagles", "Roludos", "Farmers"]
         }
+    ],
+    "previous_league_ids": [
+        {"year": 2025, "league_id": 1238157874098618368},
+        {"year": 2024, "league_id": 1105959349261803520},
+        {"year": 2023, "league_id": 971783321548120064},
+        {"year": 2022, "league_id": 848610387829055488},
+        {"year": 2021, "league_id": 650442595218059264},
+        {"year": 2020, "league_id": 590015059762130944}
     ]
 }

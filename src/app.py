@@ -7,11 +7,13 @@ sys.path.append('./src/Classes')
 sys.path.append('./src/Pages')
 
 from FantasyLeague import FantasyLeague
+from LeagueHistory import LeagueHistory
 from dashboard import render_dashboard
 from scoring import render_scoring
 from performance import render_performance
 from expected_wins import render_expected_wins
 from seeding import render_seeding
+from league_history import render_league_history
 
 # ==================== Configuration ====================
 CONFIG_FILE = './league_config.json'
@@ -23,6 +25,16 @@ def init_league():
     """Initialize the Fantasy League from JSON configuration."""
     league = FantasyLeague(from_json=CONFIG_FILE)
     return (league, league.getTeamsDf(), league.getScoringDf(), league.getH2hDf())
+
+@st.cache_resource
+def init_league_history():
+    """Initialize League History from historical Sleeper seasons + current season data."""
+    league, teams_df, scoring_df, h2h_df = init_league()
+    history = LeagueHistory(
+        from_json=CONFIG_FILE,
+        current_season_games=league.getOwnerH2hGames(),
+    )
+    return (history, history.getAllTimeH2hDf(teams_df))
 
 # ==================== Page Configuration ====================
 
@@ -48,6 +60,9 @@ def main():
     with st.spinner("Loading league data..."):
         (league, teams_df, scoring_df, h2h_df) = init_league()
 
+    with st.spinner("Carregando histórico da liga..."):
+        (league_history, all_time_h2h_df) = init_league_history()
+
     # Store data in session state for later use
     if 'league' not in st.session_state:
         st.session_state.league = league
@@ -58,12 +73,13 @@ def main():
     if 'h2h_df' not in st.session_state:
         st.session_state.h2h_df = h2h_df
     # Create tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Dashboard",
         "🔢 Seeding",
         "📈 Pontuação Semanal",
         "📉 Gráficos de Desempenho",
-        "🎯 Expected Wins"
+        "🎯 Expected Wins",
+        "🏆 Histórico da Liga"
     ])
 
     with tab1:
@@ -80,6 +96,9 @@ def main():
 
     with tab5:
         render_expected_wins(teams_df, scoring_df)
+
+    with tab6:
+        render_league_history(all_time_h2h_df)
 
 if __name__ == "__main__":
     main()
