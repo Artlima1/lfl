@@ -70,6 +70,10 @@ class Team:
                     division_losses += 1
         return (division_wins,division_losses)
 
+    def getCEW(self):
+        metric = self._metrics_manager.metrics.get("CEW")
+        return metric.value if metric is not None else None
+
     def getH2hRecord(self, other_team_id):
         h2h_wins = 0
         h2h_games = 0

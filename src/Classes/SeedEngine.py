@@ -1,322 +1,295 @@
-from functools import cmp_to_key
 from abc import ABC, abstractmethod
 
 
 # ============================================================================
-# SEED CRITERIA CLASSES
+# RANKING PRIMITIVES
 # ============================================================================
 
-class SeedCriteria(ABC):
+class RankingCriterion(ABC):
     """
-    Base class for seeding criteria.
-    Each criteria defines a single comparison rule between two teams.
+    A single ranking rule, applied to a group of currently-tied teams.
     """
-
-    @staticmethod
-    @abstractmethod
-    def calculate(t1, t2):
-        """
-        Compare two teams based on a specific criterion.
-
-        Args:
-            t1: First team object
-            t2: Second team object
-
-        Returns:
-            1 if t1 is better than t2
-            -1 if t2 is better than t1
-            0 if they are tied on this criterion
-        """
-        pass
-
-
-class RecordCriteria(SeedCriteria):
-    """Compare teams by their win-loss record."""
-
-    @staticmethod
-    def calculate(t1, t2):
-        if t1.wins > t2.wins:
-            return 1
-        elif t1.wins < t2.wins:
-            return -1
-        return 0
-
-
-class H2HCriteria(SeedCriteria):
-    """Compare teams by their head-to-head record."""
-
-    @staticmethod
-    def calculate(t1, t2):
-        h2h = t1.getH2hRecord(t2.roster_id)
-        print(t1.name, t2.name, h2h)
-        if h2h > 0.5:
-            return 1
-        elif 0 <= h2h < 0.5:
-            return -1
-        return 0
-
-
-class DivisionRecordCriteria(SeedCriteria):
-    """Compare teams by their division record."""
-
-    @staticmethod
-    def calculate(t1, t2):
-        div_rec1 = t1.getDivisionRecord()
-        div_rec2 = t2.getDivisionRecord()
-        div_perc1 = div_rec1[0] / (div_rec1[0] + div_rec1[1]) if (div_rec1[0] + div_rec1[1]) > 0 else 0
-        div_perc2 = div_rec2[0] / (div_rec2[0] + div_rec2[1]) if (div_rec2[0] + div_rec2[1]) > 0 else 0
-        if div_perc1 > div_perc2:
-            return 1
-        elif div_perc1 < div_perc2:
-            return -1
-        return 0
-
-
-class ExpectedWinsCriteria(SeedCriteria):
-    """Compare teams by their expected wins."""
-
-    @staticmethod
-    def calculate(t1, t2):
-        expw1 = t1.to_dict().get("CEW", None)
-        expw2 = t2.to_dict().get("CEW", None)
-        if expw1 > expw2:
-            return 1
-        elif expw1 < expw2:
-            return -1
-        return 0
-
-
-class DivisionSeedCriteria(SeedCriteria):
-    """Compare teams by their division seed (lower is better)."""
-
-    @staticmethod
-    def calculate(t1, t2):
-        if t1.division_seed < t2.division_seed:
-            return 1
-        elif t1.division_seed > t2.division_seed:
-            return -1
-        return 0
-
-
-class SameDivisionCriteria(SeedCriteria):
-    """
-    Special criteria: Only applies if teams are in the same division.
-    Uses their division seed to break ties.
-    """
-
-    @staticmethod
-    def calculate(t1, t2):
-        # Only apply if teams are in the same division
-        if t1.division == t2.division:
-            if t1.division_seed < t2.division_seed:
-                return 1
-            elif t1.division_seed > t2.division_seed:
-                return -1
-        return 0
-
-
-class DivisionLeaderCriteria(SeedCriteria):
-    """
-    Special criteria: Prioritize teams that are first in their division.
-    Only applies when one team is #1 seed and the other is not.
-    """
-
-    @staticmethod
-    def calculate(t1, t2):
-        # Only apply if exactly one team is #1 seed in their division
-        if t1.division_seed == 1 or t2.division_seed == 1:
-            if t1.division_seed == 1 and t2.division_seed != 1:
-                return 1
-            elif t1.division_seed != 1 and t2.division_seed == 1:
-                return -1
-        return 0
-
-
-# ============================================================================
-# SEEDER CLASSES
-# ============================================================================
-
-class Seeder(ABC):
-    """
-    Base class for seeding systems.
-    Uses a chain of SeedCriteria to compare teams.
-    """
-
-    def __init__(self, criteria_chain=None):
-        """
-        Initialize seeder with a chain of criteria.
-
-        Args:
-            criteria_chain: List of SeedCriteria classes to apply in order
-        """
-        self.criteria_chain = criteria_chain if criteria_chain else []
-
-    def _compare(self, t1, t2):
-        """
-        Compare two teams using the criteria chain.
-        Iterates through criteria until one returns a non-zero result.
-
-        Args:
-            t1: First team object
-            t2: Second team object
-
-        Returns:
-            1 if t1 is better, -1 if t2 is better, 0 if tied
-        """
-        for criteria in self.criteria_chain:
-            result = criteria.calculate(t1, t2)
-            if result != 0:
-                return result
-        return 0
 
     @abstractmethod
-    def calculate_and_update_seeding(self, teams):
+    def partition(self, teams) -> list:
         """
-        Calculate seeding and update team objects.
-        Must be implemented by subclasses.
-        """
-        pass
-
-
-class DivisionSeeder(Seeder):
-    """
-    Abstract base class for division seeding.
-    Provides generic implementation for calculating division seeds.
-    Subclasses should define their own criteria chain.
-    """
-
-    def calculate_and_update_seeding(self, teams):
-        """
-        Calculate division seeding for all teams.
-        Groups teams by division and assigns division_seed to each team.
+        Split a group of tied teams into ordered tied-subgroups.
 
         Args:
-            teams: List or dict of Team objects
+            teams: list of Team objects, all currently tied with each other
+
+        Returns:
+            list of lists of Team, best subgroup first. Subgroups of size 1
+            are final; subgroups of size > 1 are still tied on this
+            criterion and get recursed into with the remaining criteria.
         """
-        # Convert to list if dict
-        if isinstance(teams, dict):
-            teams_list = list(teams.values())
+        raise NotImplementedError
+
+
+class ValueCriterion(RankingCriterion):
+    """
+    Groups teams by a descending scalar key (e.g. wins, division win%, CEW).
+    Teams with an equal key stay tied in the same subgroup.
+    """
+
+    def __init__(self, key_func, default=0.0):
+        self.key_func = key_func
+        self.default = default
+
+    def partition(self, teams):
+        keyed = [(self.key_func(team), team) for team in teams]
+        keyed.sort(key=lambda pair: pair[0], reverse=True)
+
+        groups = []
+        for value, team in keyed:
+            if groups and groups[-1][0] == value:
+                groups[-1][1].append(team)
+            else:
+                groups.append((value, [team]))
+        return [group for _, group in groups]
+
+
+def classify_h2h_group(teams):
+    """
+    Classify each team in a tied group by its head-to-head record against
+    every OTHER team in that same group.
+
+    A team is a sweep winner only if it has complete head-to-head data
+    (Team.getH2hRecord != -1) against every other team in the group AND
+    beat (> 0.5) every one of them. Symmetric definition for a swept
+    loser. Any team missing data against even one group member, or with
+    a mixed/cyclic result, is undecided.
+
+    Returns:
+        (winners, undecided, losers) - lists of Team
+    """
+    winners, undecided, losers = [], [], []
+
+    for team in teams:
+        others = [other for other in teams if other is not team]
+        records = [team.getH2hRecord(other.roster_id) for other in others]
+
+        if any(record == -1 for record in records):
+            undecided.append(team)
+        elif all(record > 0.5 for record in records):
+            winners.append(team)
+        elif all(record < 0.5 for record in records):
+            losers.append(team)
         else:
-            teams_list = teams
+            undecided.append(team)
 
-        # Group teams by division
-        divisions = {}
-        for team in teams_list:
-            if team.division:
-                if team.division not in divisions:
-                    divisions[team.division] = []
-                divisions[team.division].append(team)
-
-        # Sort each division and assign seeds
-        for div_teams in divisions.values():
-            div_teams.sort(key=cmp_to_key(self._compare), reverse=True)
-            for i, team in enumerate(div_teams):
-                team.division_seed = i + 1
+    return winners, undecided, losers
 
 
-class LFLDivisionSeeder(DivisionSeeder):
+class H2HGroupCriterion(RankingCriterion):
+    """Head-to-head tiebreak, evaluated across the whole tied group at once."""
+
+    def partition(self, teams):
+        winners, undecided, losers = classify_h2h_group(teams)
+        return [group for group in (winners, undecided, losers) if group]
+
+
+def rank_teams(teams, criteria):
+    """
+    Resolve a group of teams into a single fully-ordered list by applying
+    `criteria` in order. Within each criterion's tied subgroups, recurse
+    with the remaining criteria. When criteria are exhausted, falls back
+    to a deterministic order by roster_id.
+
+    Args:
+        teams: list of Team objects to rank (assumed already tied going in)
+        criteria: list of RankingCriterion to apply in order
+
+    Returns:
+        list of Team, best first
+    """
+    if len(teams) <= 1:
+        return list(teams)
+
+    if not criteria:
+        return sorted(teams, key=lambda team: team.roster_id)
+
+    groups = criteria[0].partition(teams)
+
+    result = []
+    for group in groups:
+        if len(group) == 1:
+            result.extend(group)
+        else:
+            result.extend(rank_teams(group, criteria[1:]))
+    return result
+
+
+# ============================================================================
+# LFL CRITERIA CHAINS
+# ============================================================================
+
+def _division_win_pct(team):
+    wins, losses = team.getDivisionRecord()
+    total = wins + losses
+    return wins / total if total > 0 else 0.0
+
+
+def _cew(team):
+    value = team.getCEW()
+    return value if value is not None else 0.0
+
+
+DIVISION_CRITERIA = [
+    ValueCriterion(lambda team: team.wins),
+    H2HGroupCriterion(),
+    ValueCriterion(_division_win_pct),
+    ValueCriterion(_cew),
+]
+
+LEAGUE_LEADER_CRITERIA = [
+    ValueCriterion(lambda team: team.wins),
+    H2HGroupCriterion(),
+    ValueCriterion(_cew),
+]
+
+
+# ============================================================================
+# DIVISION SEEDING
+# ============================================================================
+
+def compute_division_seeding(teams, criteria=DIVISION_CRITERIA):
+    """
+    Groups teams by division and assigns a 1-indexed division_seed to each
+    team within its division. Teams with a falsy division are skipped.
+
+    Args:
+        teams: dict or list of Team objects
+    """
+    teams_list = list(teams.values()) if isinstance(teams, dict) else list(teams)
+
+    divisions = {}
+    for team in teams_list:
+        if team.division:
+            divisions.setdefault(team.division, []).append(team)
+
+    for div_teams in divisions.values():
+        ranked = rank_teams(div_teams, criteria)
+        for i, team in enumerate(ranked):
+            team.division_seed = i + 1
+
+
+# ============================================================================
+# LEAGUE SEEDING
+# ============================================================================
+
+def _sample_best_remaining_per_division(non_leaders, criteria):
+    """
+    Seeds non-leader teams by repeatedly comparing the current-best
+    not-yet-seeded team from each division and picking the overall best
+    candidate each round. Within a division, teams are only ever offered
+    as a candidate in their own division_seed order (a division's #3 can
+    never be picked before its own #2).
+
+    Args:
+        non_leaders: list of Team objects (division_seed != 1)
+        criteria: list of RankingCriterion used to compare candidates
+
+    Returns:
+        list of Team, best (next seed) first
+    """
+    by_division = {}
+    for team in non_leaders:
+        by_division.setdefault(team.division, []).append(team)
+    for div_teams in by_division.values():
+        div_teams.sort(key=lambda team: team.division_seed)
+
+    pointers = {division: 0 for division in by_division}
+    result = []
+
+    remaining = len(non_leaders)
+    while remaining > 0:
+        candidates = []
+        for division, div_teams in by_division.items():
+            pointer = pointers[division]
+            if pointer < len(div_teams):
+                candidates.append(div_teams[pointer])
+
+        best = rank_teams(candidates, criteria)[0]
+        result.append(best)
+        pointers[best.division] += 1
+        remaining -= 1
+
+    return result
+
+
+def compute_league_seeding(teams, leader_criteria=LEAGUE_LEADER_CRITERIA):
+    """
+    Assigns a 1-indexed league_seed to every team. Division leaders
+    (division_seed == 1) always occupy the top seeds ahead of every
+    non-leader. Requires division_seed to already be set on every team.
+
+    Args:
+        teams: dict or list of Team objects
+    """
+    teams_list = list(teams.values()) if isinstance(teams, dict) else list(teams)
+
+    leaders = [team for team in teams_list if team.division_seed == 1]
+    non_leaders = [team for team in teams_list if team.division_seed != 1]
+
+    ordered_leaders = rank_teams(leaders, leader_criteria)
+    ordered_non_leaders = _sample_best_remaining_per_division(non_leaders, leader_criteria)
+
+    for i, team in enumerate(ordered_leaders + ordered_non_leaders):
+        team.league_seed = i + 1
+
+
+# ============================================================================
+# PUBLIC FACADES (unchanged signatures, used by FantasyLeague.py)
+# ============================================================================
+
+class LFLDivisionSeeder:
     """
     LFL-specific division seeder.
 
     Tiebreaker order:
     1. Record (wins)
-    2. Head-to-head record
+    2. Head-to-head record (evaluated across the whole tied group)
     3. Division record
-    4. Expected wins
-    """
-
-    def __init__(self):
-        super().__init__(criteria_chain=[
-            RecordCriteria,
-            H2HCriteria,
-            DivisionRecordCriteria,
-            ExpectedWinsCriteria
-        ])
-
-
-class LeagueSeeder(Seeder):
-    """
-    Abstract base class for league-wide seeding.
-    Provides generic implementation for calculating league seeds.
-    Subclasses should define their own criteria chain.
+    4. Expected wins (CEW)
     """
 
     def calculate_and_update_seeding(self, teams):
-        """
-        Calculate league seeding for all teams.
-        Assigns league_seed to each team.
-
-        Note: Requires division_seed to be set first (run DivisionSeeder first).
-
-        Args:
-            teams: List or dict of Team objects
-        """
-        # Convert to list if dict
-        if isinstance(teams, dict):
-            teams_list = list(teams.values())
-        else:
-            teams_list = teams
-
-        # Sort teams and assign league seeds
-        teams_list.sort(key=cmp_to_key(self._compare), reverse=True)
-        for i, team in enumerate(teams_list):
-            team.league_seed = i + 1
+        compute_division_seeding(teams)
 
 
-class LFLLeagueSeeder(LeagueSeeder):
+class LFLLeagueSeeder:
     """
     LFL-specific league seeder.
 
-    Tiebreaker order:
-    1. Record (wins)
-    2. If same division: use division seed
-    3. If one is #1 in division: prioritize division winners
-    4. Head-to-head record
-    5. Expected wins
+    Division leaders always rank ahead of non-leaders. Leaders are ranked
+    among themselves by wins, then group head-to-head, then CEW. The rest
+    are seeded by sampling the best remaining team from each division,
+    using the same criteria, until everyone is seeded.
     """
 
-    def __init__(self):
-        super().__init__(criteria_chain=[
-            RecordCriteria,
-            SameDivisionCriteria,
-            DivisionLeaderCriteria,
-            H2HCriteria,
-            ExpectedWinsCriteria
-        ])
+    def calculate_and_update_seeding(self, teams):
+        compute_league_seeding(teams)
 
-
-# ============================================================================
-# SEED ENGINE
-# ============================================================================
 
 class SeedEngine:
     """
-    Generic seed engine that orchestrates division and league seeding.
-    Accepts any DivisionSeeder and LeagueSeeder implementations.
+    Orchestrates division and league seeding. Accepts any
+    division_seeder/league_seeder implementing calculate_and_update_seeding.
     """
 
     def __init__(self, division_seeder=None, league_seeder=None):
-        """
-        Initialize the SeedEngine with custom seeders.
-
-        Args:
-            division_seeder: DivisionSeeder instance
-            league_seeder: LeagueSeeder instance
-        """
         self.division_seeder = division_seeder
         self.league_seeder = league_seeder
 
     def calculate_and_update_seeding(self, teams):
         """
-        Compute both division and league seeding for teams.
-        Directly modifies the team objects by setting their division_seed
-        and league_seed attributes.
+        Computes both division and league seeding for teams. Directly
+        modifies the team objects by setting their division_seed and
+        league_seed attributes.
 
         Args:
-            teams: List or dict of Team objects
+            teams: dict or list of Team objects
         """
-        # First calculate division seeding
         self.division_seeder.calculate_and_update_seeding(teams)
-
-        # Then calculate league seeding (depends on division seeds)
         self.league_seeder.calculate_and_update_seeding(teams)
