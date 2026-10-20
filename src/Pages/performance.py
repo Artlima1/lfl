@@ -4,31 +4,38 @@ import altair as alt
 
 
 def render_performance(teams_df, scores_df):
-    """Render the Gr�ficos de Desempenho tab."""
-    st.header("Gr�ficos de Desempenho")
+    """Render the Gráficos de Desempenho tab."""
+    st.header("Gráficos de Desempenho")
 
-    # Boxplot using Streamlit
-    st.subheader("Boxplot de Pontua��o por Time")
+    # Tick plot using Streamlit
+    st.subheader("Distribuição de Pontuação por Time")
 
-    # Prepare data for boxplot - need to reshape for proper display
+    # Prepare data for tick plot - need to reshape for proper display
     boxplot_df = (
         scores_df
         .rename(columns={'short_name': 'Time', 'points': 'Pontos'})
         [['Time', 'Pontos']]
     )
 
-    # Calculate median for sorting
-    median_order = boxplot_df.groupby('Time')['Pontos'].median().sort_values(ascending=True).index.tolist()
+    n_teams = boxplot_df['Time'].nunique()
 
-    # Use Altair through Streamlit for interactive boxplot
-    boxplot_chart = alt.Chart(boxplot_df).mark_boxplot(
-        size=15
+    # mark_tick draws one short horizontal line per weekly score, stacked in
+    # each team's column - the native Altair equivalent of an event plot.
+    # Tick length is bound to the chart's own `width` signal (which tracks
+    # the container on resize) so it shrinks with narrower team columns on
+    # mobile instead of overflowing into neighboring columns.
+    boxplot_chart = alt.Chart(boxplot_df).mark_tick(
+        thickness=3,
+        size={'expr': f'clamp(width / {n_teams} * 0.6, 8, 70)'},
     ).encode(
         x=alt.X('Time:N',
-               sort=median_order,
-               axis=alt.Axis(labelAngle=-45, labelLimit=100, labelOverlap=False)),
+               sort=None,
+               axis=alt.Axis(labelAngle=-45, labelLimit=100, labelOverlap=False,
+                              grid=True, gridDash=[2, 2], gridColor='#999999', gridOpacity=0.6,
+                              tickBand='extent')),
         y=alt.Y('Pontos:Q', scale=alt.Scale(zero=False)),
-        color=alt.Color('Time:N', legend=None)
+        color=alt.Color('Time:N', legend=None),
+        tooltip=[alt.Tooltip('Time:N', title='Time'), alt.Tooltip('Pontos:Q', title='Pontos', format='.1f')]
     ).properties(
         height=400
     ).configure_axisX(

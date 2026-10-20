@@ -5,9 +5,108 @@ import altair as alt
 from scipy.interpolate import make_interp_spline
 
 
-def render_expected_wins(teams_df, prob_df):
+def render_expected_wins(teams_df, scoring_df):
     """Render the Expected Wins tab."""
     st.header("Expected Wins")
+
+    # Team Score vs Opponent Score Chart
+    st.subheader("Pontuação vs Adversário por Semana")
+
+    scatter_data = scoring_df[['short_name', 'week', 'points', 'adversary_points', 'win']].rename(
+        columns={'short_name': 'Time', 'points': 'Pontos', 'adversary_points': 'Pontos Adversário'}
+    )
+
+    # Shared domain on both axes so the diagonal line is a true win/loss boundary
+    score_min = min(scatter_data['Pontos'].min(), scatter_data['Pontos Adversário'].min())
+    score_max = max(scatter_data['Pontos'].max(), scatter_data['Pontos Adversário'].max())
+    padding = (score_max - score_min) * 0.05
+    domain = [score_min - padding, score_max + padding]
+
+    # Shade the half of the chart below the diagonal (win zone, team > opponent)
+    # and above it (loss zone, opponent > team)
+    zone_data = pd.DataFrame({
+        'Pontos': domain,
+        'win_lower': [domain[0], domain[0]],
+        'win_upper': domain,
+        'loss_lower': domain,
+        'loss_upper': [domain[1], domain[1]],
+    })
+
+    win_zone = alt.Chart(zone_data).mark_area(color='#2ca02c', opacity=0.1).encode(
+        x=alt.X('Pontos:Q', scale=alt.Scale(domain=domain)),
+        y=alt.Y('win_lower:Q', scale=alt.Scale(domain=domain)),
+        y2='win_upper:Q'
+    )
+
+    loss_zone = alt.Chart(zone_data).mark_area(color='#d62728', opacity=0.1).encode(
+        x=alt.X('Pontos:Q', scale=alt.Scale(domain=domain)),
+        y=alt.Y('loss_lower:Q', scale=alt.Scale(domain=domain)),
+        y2='loss_upper:Q'
+    )
+
+    win_line = alt.Chart(pd.DataFrame({'Pontos': domain, 'Pontos Adversário': domain})).mark_line(
+        color='#999999',
+        strokeDash=[4, 4]
+    ).encode(
+        x=alt.X('Pontos:Q', scale=alt.Scale(domain=domain)),
+        y=alt.Y('Pontos Adversário:Q', scale=alt.Scale(domain=domain)),
+    )
+
+    # Faint labels inside each zone instead of a legend. Each uses a literal
+    # mark color (not a field-encoded "color" channel) so it doesn't get
+    # merged into the team color scale used by the scatter points below.
+    span = domain[1] - domain[0]
+
+    win_text = alt.Chart(pd.DataFrame({
+        'Pontos': [domain[1] - span * 0.12],
+        'Pontos Adversário': [domain[0] + span * 0.06]
+    })).mark_text(text='Vitória', fontSize=26, fontWeight='bold', opacity=0.3, color='#2ca02c').encode(
+        x=alt.X('Pontos:Q', scale=alt.Scale(domain=domain)),
+        y=alt.Y('Pontos Adversário:Q', scale=alt.Scale(domain=domain)),
+    )
+
+    loss_text = alt.Chart(pd.DataFrame({
+        'Pontos': [domain[0] + span * 0.12],
+        'Pontos Adversário': [domain[1] - span * 0.06]
+    })).mark_text(text='Derrota', fontSize=26, fontWeight='bold', opacity=0.3, color='#d62728').encode(
+        x=alt.X('Pontos:Q', scale=alt.Scale(domain=domain)),
+        y=alt.Y('Pontos Adversário:Q', scale=alt.Scale(domain=domain)),
+    )
+
+    # Let the user narrow down which teams' points are plotted; the zones,
+    # diagonal and axis domain stay fixed to the full dataset either way
+    team_options = teams_df['short_name'].tolist()
+    selected_scatter_teams = st.multiselect(
+        "Filtrar times:",
+        options=team_options,
+        default=team_options,
+        key="scatter_team_filter"
+    )
+    scatter_data = scatter_data[scatter_data['Time'].isin(selected_scatter_teams)]
+
+    scatter_points = alt.Chart(scatter_data).mark_circle(size=70, opacity=0.7).encode(
+        x=alt.X('Pontos:Q', title='Pontuação do Time', scale=alt.Scale(domain=domain)),
+        y=alt.Y('Pontos Adversário:Q', title='Pontuação do Adversário', scale=alt.Scale(domain=domain)),
+        color=alt.Color('Time:N', legend=alt.Legend(title='Time', orient='bottom', columns=6)),
+        tooltip=[
+            alt.Tooltip('Time:N', title='Time'),
+            alt.Tooltip('week:O', title='Semana'),
+            alt.Tooltip('Pontos:Q', title='Pontos', format='.1f'),
+            alt.Tooltip('Pontos Adversário:Q', title='Pontos Adversário', format='.1f'),
+            alt.Tooltip('win:N', title='Vitória')
+        ]
+    )
+
+    # Fixed, equal width/height so the diagonal is a true 45° boundary
+    # regardless of container width
+    scatter_chart = (win_zone + loss_zone + win_line + win_text + loss_text + scatter_points).properties(
+        width=500,
+        height=500
+    )
+
+    st.altair_chart(scatter_chart, use_container_width=False)
+
+    st.markdown("---")
 
     # Expected Wins Chart
     st.subheader("Vitórias Reais vs Expected Wins")
