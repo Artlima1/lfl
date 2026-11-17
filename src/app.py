@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import sys
 
 # Add module paths before importing custom modules
@@ -11,7 +10,7 @@ from LeagueHistory import LeagueHistory
 from dashboard import render_dashboard
 from scoring import render_scoring
 from performance import render_performance
-from expected_wins import render_expected_wins
+from advanced_stats import render_advanced_stats
 from seeding import render_seeding
 from league_history import render_league_history
 
@@ -28,7 +27,11 @@ def init_league():
 
 @st.cache_resource
 def init_league_history():
-    """Initialize League History from historical Sleeper seasons + current season data."""
+    """Initialize League History from historical Sleeper seasons + current season data.
+
+    Slow (many sequential Sleeper API calls across past seasons), so this is only
+    ever invoked from page_league_history below — never eagerly on app load.
+    """
     league, teams_df, scoring_df, h2h_df = init_league()
     history = LeagueHistory(
         from_json=CONFIG_FILE,
@@ -45,10 +48,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== Main Application ====================
+# ==================== Shared Header ====================
 
-def main():
-    # Title and Header with Logo
+def _render_header():
     col1, col2 = st.columns([1, 10])
     with col1:
         st.image("LFL_Logo.jpg", width=80)
@@ -56,35 +58,28 @@ def main():
         st.title("LFL")
     st.markdown("---")
 
-    # Initialize league and load data
+# ==================== Pages ====================
+# Two top-level st.Pages (left sidebar). Streamlit's navigation only runs the
+# currently selected page's function on a given rerun, so page_league_history's
+# slow multi-season load only happens when that page is actually visited.
+
+def page_current_season():
+    _render_header()
     with st.spinner("Loading league data..."):
-        (league, teams_df, scoring_df, h2h_df) = init_league()
+        _, teams_df, scoring_df, h2h_df = init_league()
 
-    with st.spinner("Carregando histórico da liga..."):
-        (league_history, all_time_h2h_df) = init_league_history()
-
-    # Store data in session state for later use
-    if 'league' not in st.session_state:
-        st.session_state.league = league
-    if 'teams_df' not in st.session_state:
-        st.session_state.teams_df = teams_df
-    if 'scoring_df' not in st.session_state:
-        st.session_state.scoring_df = scoring_df
-    if 'h2h_df' not in st.session_state:
-        st.session_state.h2h_df = h2h_df
-    # Navigation — using st.segmented_control (not st.tabs) because its
-    # selection is tracked in st.session_state and survives reruns triggered
-    # by widgets inside a section. st.tabs' active tab lives only in the
-    # frontend and can reset to the first tab when a widget inside a
-    # non-first tab triggers a rerun (a known Streamlit limitation).
     section_labels = [
         "📊 Dashboard",
         "🔢 Seeding",
         "📈 Pontuação Semanal",
         "📉 Gráficos de Desempenho",
-        "🎯 Expected Wins",
-        "🏆 Histórico da Liga"
+        "🎯 Advanced Stats",
     ]
+    # Navigation — using st.segmented_control (not st.tabs) because its
+    # selection is tracked in st.session_state and survives reruns triggered
+    # by widgets inside a section. st.tabs' active tab lives only in the
+    # frontend and can reset to the first tab when a widget inside a
+    # non-first tab triggers a rerun (a known Streamlit limitation).
     selected_section = st.segmented_control(
         "Navegação",
         section_labels,
@@ -109,11 +104,21 @@ def main():
     elif selected_section == "📉 Gráficos de Desempenho":
         render_performance(teams_df, scoring_df)
 
-    elif selected_section == "🎯 Expected Wins":
-        render_expected_wins(teams_df, scoring_df)
+    elif selected_section == "🎯 Advanced Stats":
+        render_advanced_stats(teams_df, scoring_df)
 
-    elif selected_section == "🏆 Histórico da Liga":
-        render_league_history(all_time_h2h_df, league_history, teams_df)
+def page_league_history():
+    _render_header()
+    with st.spinner("Loading league data..."):
+        _, teams_df, _, _ = init_league()
+    with st.spinner("Carregando histórico da liga..."):
+        league_history, all_time_h2h_df = init_league_history()
+    render_league_history(all_time_h2h_df, league_history, teams_df)
 
-if __name__ == "__main__":
-    main()
+# ==================== Main Application ====================
+
+pg = st.navigation([
+    st.Page(page_current_season, title="Temporada Atual", icon="🏈", default=True),
+    st.Page(page_league_history, title="Histórico da Liga", icon="🏆"),
+])
+pg.run()

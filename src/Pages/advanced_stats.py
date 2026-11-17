@@ -5,9 +5,37 @@ import altair as alt
 from scipy.interpolate import make_interp_spline
 
 
-def render_expected_wins(teams_df, scoring_df):
-    """Render the Expected Wins tab."""
-    st.header("Expected Wins")
+def render_advanced_stats(teams_df, scoring_df):
+    """Render the Advanced Stats tab."""
+    st.header("Advanced Stats")
+
+    # Expected Wins / Strength of Schedule table
+    st.subheader("Expected Wins e Força do Calendário")
+
+    ew_table_df = teams_df[['short_name', 'wins', 'CEW', 'SEW']].rename(columns={
+        'short_name': 'Time',
+        'wins': 'Vitórias',
+        'CEW': 'Campaign-EW',
+    })
+    ew_table_df['Delta W'] = ew_table_df['Vitórias'] - ew_table_df['Campaign-EW']
+    ew_table_df['SoS'] = ew_table_df['SEW'].rank(method='min').astype(int)
+    ew_table_df = ew_table_df.drop('SEW', axis=1).sort_values(by='Campaign-EW', ascending=False)
+
+    st.dataframe(
+        ew_table_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Time": st.column_config.TextColumn("Time"),
+            "Vitórias": st.column_config.NumberColumn("Vitórias", format="%d"),
+            "Campaign-EW": st.column_config.NumberColumn("Campaign-EW", format="%.2f"),
+            "Delta W": st.column_config.NumberColumn("Delta W", format="%.2f"),
+            "SoS": st.column_config.NumberColumn("SoS", format="%d"),
+        }
+    )
+
+    st.markdown("---")
+
 
     # Team Score vs Opponent Score Chart
     st.subheader("Pontuação vs Adversário por Semana")

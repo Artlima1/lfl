@@ -34,7 +34,7 @@ There are no automated tests, linter, or build step configured in this repo.
 
 `FantasyLeague` exposes the computed state only as pandas DataFrames (`getTeamsDf`, `getScoringDf`, `getH2hDf`) — Streamlit pages never touch `Team`/`WeekPerformance` objects directly.
 
-`src/app.py` wraps league construction in `@st.cache_resource` (`init_league`), so the Sleeper API is only called once per server process; restart Streamlit to pick up new game results. The three DataFrames are stashed in `st.session_state` and each page module receives the DataFrames it needs as plain function arguments — there's no shared page-level state beyond that.
+`src/app.py` wraps league construction in `@st.cache_resource` (`init_league`), so the Sleeper API is only called once per server process; restart Streamlit to pick up new game results. There are two top-level `st.Page`s (see Pages below); each calls `init_league()` itself and passes the resulting DataFrames into the `render_*` function(s) it dispatches to as plain arguments — there's no shared page-level state beyond that.
 
 ### Class responsibilities (`src/Classes/`)
 
@@ -45,7 +45,7 @@ There are no automated tests, linter, or build step configured in this repo.
 
 ### Pages (`src/Pages/`)
 
-Each file exposes one `render_*(teams_df, ...)` function called from `src/app.py` inside an `st.tabs` block; pages take DataFrames in and call `st.*` directly (no return value). Charting in pages uses `st.line_chart`/`altair` rather than `Charts.py`. UI text is in Portuguese (pt-BR); keep new UI strings consistent with that.
+Each file exposes one `render_*(teams_df, ...)` function; pages take DataFrames in and call `st.*` directly (no return value). `src/app.py` registers exactly two `st.Page`s via `st.navigation` (left sidebar nav): `page_current_season` draws the header, loads data via `init_league()`, and dispatches to `render_dashboard`/`render_seeding`/`render_scoring`/`render_performance`/`render_advanced_stats` through an in-page `st.segmented_control` (not `st.tabs` — its selection survives reruns triggered by widgets inside a section, a known `st.tabs` limitation); `page_league_history` is a separate page that additionally calls the slow, multi-season `init_league_history()` before calling `render_league_history` — since Streamlit only runs the selected page's function on a given rerun, that slow load only happens when a user actually opens the Histórico da Liga page. Charting in pages uses `st.line_chart`/`altair` rather than `Charts.py`. UI text is in Portuguese (pt-BR); keep new UI strings consistent with that.
 
 ### Notebook
 

@@ -31,6 +31,8 @@ class MetricsManager:
         points = [week.points for week in weeks]
         cewProbs = [(12-week.rank)/11 for week in weeks]
         sewProbs = [(week.adversary_rank-1)/11 for week in weeks]
+        ranks = [week.rank for week in weeks]
+        oppRanks = [week.adversary_rank for week in weeks]
 
         self.metrics["avg"] = AverageMetric(values=points)
         self.metrics["std"] = StdDevMetric(values=points)
@@ -39,6 +41,8 @@ class MetricsManager:
         self.metrics["CEW"] = ExpectedWinsMetric(values=cewProbs)
         self.metrics["SEW"] = ExpectedWinsMetric(values=sewProbs)
         self.metrics["probNWins"] = ProbNWins(values=cewProbs)
+        self.metrics["avgRank"] = AverageMetric(values=ranks)
+        self.metrics["avgOppRank"] = AverageMetric(values=oppRanks)
 
     def to_dict(self):
         return {k: v.value for k, v in self.metrics.items()}
@@ -72,6 +76,10 @@ class Team:
 
     def getCEW(self):
         metric = self._metrics_manager.metrics.get("CEW")
+        return metric.value if metric is not None else None
+
+    def getAvgRank(self):
+        metric = self._metrics_manager.metrics.get("avgRank")
         return metric.value if metric is not None else None
 
     def getH2hRecord(self, other_team_id):

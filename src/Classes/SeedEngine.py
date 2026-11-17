@@ -28,17 +28,20 @@ class RankingCriterion(ABC):
 
 class ValueCriterion(RankingCriterion):
     """
-    Groups teams by a descending scalar key (e.g. wins, division win%, CEW).
-    Teams with an equal key stay tied in the same subgroup.
+    Groups teams by a scalar key (e.g. wins, division win%, average weekly
+    rank). Teams with an equal key stay tied in the same subgroup. By
+    default the highest key wins (e.g. wins, CEW); pass ascending=True for
+    metrics where lower is better (e.g. average weekly rank).
     """
 
-    def __init__(self, key_func, default=0.0):
+    def __init__(self, key_func, default=0.0, ascending=False):
         self.key_func = key_func
         self.default = default
+        self.ascending = ascending
 
     def partition(self, teams):
         keyed = [(self.key_func(team), team) for team in teams]
-        keyed.sort(key=lambda pair: pair[0], reverse=True)
+        keyed.sort(key=lambda pair: pair[0], reverse=not self.ascending)
 
         groups = []
         for value, team in keyed:
@@ -130,22 +133,22 @@ def _division_win_pct(team):
     return wins / total if total > 0 else 0.0
 
 
-def _cew(team):
-    value = team.getCEW()
-    return value if value is not None else 0.0
+def _avg_rank(team):
+    value = team.getAvgRank()
+    return value if value is not None else 12.0
 
 
 DIVISION_CRITERIA = [
     ValueCriterion(lambda team: team.wins),
     H2HGroupCriterion(),
     ValueCriterion(_division_win_pct),
-    ValueCriterion(_cew),
+    ValueCriterion(_avg_rank, ascending=True),
 ]
 
 LEAGUE_LEADER_CRITERIA = [
     ValueCriterion(lambda team: team.wins),
     H2HGroupCriterion(),
-    ValueCriterion(_cew),
+    ValueCriterion(_avg_rank, ascending=True),
 ]
 
 
@@ -251,7 +254,7 @@ class LFLDivisionSeeder:
     1. Record (wins)
     2. Head-to-head record (evaluated across the whole tied group)
     3. Division record
-    4. Expected wins (CEW)
+    4. Average weekly rank (lower is better)
     """
 
     def calculate_and_update_seeding(self, teams):
@@ -263,9 +266,10 @@ class LFLLeagueSeeder:
     LFL-specific league seeder.
 
     Division leaders always rank ahead of non-leaders. Leaders are ranked
-    among themselves by wins, then group head-to-head, then CEW. The rest
-    are seeded by sampling the best remaining team from each division,
-    using the same criteria, until everyone is seeded.
+    among themselves by wins, then group head-to-head, then average weekly
+    rank (lower is better). The rest are seeded by sampling the best
+    remaining team from each division, using the same criteria, until
+    everyone is seeded.
     """
 
     def calculate_and_update_seeding(self, teams):
