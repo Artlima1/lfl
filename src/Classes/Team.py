@@ -78,6 +78,10 @@ class Team:
         metric = self._metrics_manager.metrics.get("CEW")
         return metric.value if metric is not None else None
 
+    def getAvgRank(self):
+        metric = self._metrics_manager.metrics.get("avgRank")
+        return metric.value if metric is not None else None
+
     def getH2hRecord(self, other_team_id):
         h2h_wins = 0
         h2h_games = 0

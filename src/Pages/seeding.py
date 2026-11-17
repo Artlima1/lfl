@@ -9,7 +9,7 @@ def render_seeding(teams_df, h2h_df):
     # League Standings Table
     st.subheader("Classificação da Liga")
     # Select and rename columns for display
-    standings_df = teams_df[['seed', 'short_name', 'record', 'division', 'division_seed', 'division_record', 'CEW']]\
+    standings_df = teams_df[['seed', 'short_name', 'record', 'division', 'division_seed', 'division_record', 'avgRank']]\
         .sort_values(by="seed")\
         .rename(columns={
             'seed': 'Seed',
@@ -18,9 +18,9 @@ def render_seeding(teams_df, h2h_df):
             'division': 'Divisão',
             'division_seed': 'Seed na Divisão',
             'division_record': 'Campanha na Divisão',
-            'CEW': 'Expected Wins',
+            'avgRank': 'Rank Médio',
         })
-    
+
 
     # Display the table
     st.dataframe(
@@ -34,9 +34,28 @@ def render_seeding(teams_df, h2h_df):
             "Divisão": st.column_config.TextColumn("Divisão"),
             "Seed na Divisão": st.column_config.NumberColumn("Seed na Divisão"),
             "Campanha na Divisão": st.column_config.TextColumn("Campanha na Divisão"),
-            "Expected Wins": st.column_config.NumberColumn("Expected Wins", format="%.2f"),
+            "Rank Médio": st.column_config.NumberColumn("Rank Médio", format="%.2f"),
         }
     )
+
+    with st.expander("Como funciona o critério de desempate"):
+        st.markdown("""
+        **Seed de Divisão** (ordem de desempate entre times da mesma divisão):
+        1. Vitórias
+        2. Confronto direto entre os times empatados
+        3. Campanha na divisão
+        4. Rank médio semanal (menor é melhor)
+        
+        O ranking divisional é calculado ANTES do ranking da liga!
+
+        **Seed da Liga** (líderes de divisão sempre na frente dos demais times):
+        1. Vitórias
+        2. Confronto direto entre os times empatados
+        3. Rank médio semanal (menor é melhor)
+
+        Os não-líderes são encaixados comparando, a cada rodada, o melhor time
+        ainda não encaixado de cada divisão pelos mesmos critérios acima.
+        """)
 
     st.markdown("---")
     # Head-to-Head Records
