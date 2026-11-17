@@ -9,28 +9,18 @@ def render_dashboard(teams_df, scores_df):
     # League Standings Table
     st.subheader("Classificação da Liga")
     # Select and rename columns for display
-    standings_df = teams_df[['seed', 'short_name', 'wins', 'avg', "last5", 'std', 'med', 'CEW', "SEW"]]\
+    standings_df = teams_df[['seed', 'short_name', 'wins', 'avg', "last5", 'std', 'avgRank', 'avgOppRank']]\
         .sort_values(by="seed")\
         .rename(columns={
             'seed': 'Seed',
             'short_name': 'Time',
             'wins': 'Vitórias',
             'avg': 'Média',
-            'med': 'Mediana',
             'std': 'Desvio Padrão',
-            'CEW': 'Campaign-EW',
             'last5': 'Últimos 5',
+            'avgRank': 'Rank Médio',
+            'avgOppRank': 'Rank Médio Adversário',
         })
-    standings_df['Delta W'] =  standings_df['Vitórias'] - standings_df['Campaign-EW']
-    standings_df['SoS'] = standings_df['SEW'].rank(method='min').astype(int)
-    standings_df = standings_df.drop('SEW', axis=1)
-
-    # Round numeric columns for better display
-    # standings_df['Média'] = standings_df['Média'].round(2)
-    # standings_df['Desvio Padrão'] = standings_df['Desvio Padrão'].round(2)
-    # standings_df['Campaign-EW'] = standings_df['Campaign-EW'].round(2)
-    # standings_df['Delta W'] = standings_df['Delta W'].round(2)
-    # standings_df['Delta W'] = standings_df['Delta W'].round(2)
 
     # Display the table
     st.dataframe(
@@ -44,12 +34,22 @@ def render_dashboard(teams_df, scores_df):
             "Média": st.column_config.NumberColumn("Média", format="%.2f"),
             "Últimos 5": st.column_config.NumberColumn("Últimos 5", format="%.2f"),
             "Desvio Padrão": st.column_config.NumberColumn("Desvio Padrão", format="%.2f"),
-            "Mediana": st.column_config.NumberColumn("Mediana", format="%.2f"),
-            "Campaign-EW": st.column_config.NumberColumn("Campaign-EW", format="%.2f"),
-            "Delta W": st.column_config.NumberColumn("Delta W", format="%.2f"),
-            "SoS": st.column_config.NumberColumn("SoS", format="%d"),
+            "Rank Médio": st.column_config.NumberColumn("Rank Médio", format="%.2f"),
+            "Rank Médio Adversário": st.column_config.NumberColumn("Rank Médio Adversário", format="%.2f"),
         }
     )
+
+    with st.expander("Legenda das colunas"):
+        st.markdown("""
+        - **Seed**: posição do time na classificação geral da liga.
+        - **Time**: nome abreviado do time.
+        - **Vitórias**: número de vitórias do time na temporada.
+        - **Média**: pontuação média do time por semana.
+        - **Últimos 5**: pontuação média do time nas últimas 5 semanas.
+        - **Desvio Padrão**: variação da pontuação do time em relação à média (quanto menor, mais consistente).
+        - **Rank Médio**: posição média do time no ranking semanal de pontuação (1 = melhor pontuação da semana).
+        - **Rank Médio Adversário**: posição média do ranking semanal dos adversários enfrentados pelo time (mede a força do calendário).
+        """)
 
     st.markdown("---")
 

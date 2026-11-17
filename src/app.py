@@ -11,7 +11,7 @@ from LeagueHistory import LeagueHistory
 from dashboard import render_dashboard
 from scoring import render_scoring
 from performance import render_performance
-from expected_wins import render_expected_wins
+from advanced_stats import render_advanced_stats
 from seeding import render_seeding
 from league_history import render_league_history
 
@@ -82,7 +82,7 @@ def main():
         "🔢 Seeding",
         "📈 Pontuação Semanal",
         "📉 Gráficos de Desempenho",
-        "🎯 Expected Wins",
+        "🎯 Advanced Stats",
         "🏆 Histórico da Liga"
     ]
     selected_section = st.segmented_control(
@@ -109,8 +109,8 @@ def main():
     elif selected_section == "📉 Gráficos de Desempenho":
         render_performance(teams_df, scoring_df)
 
-    elif selected_section == "🎯 Expected Wins":
-        render_expected_wins(teams_df, scoring_df)
+    elif selected_section == "🎯 Advanced Stats":
+        render_advanced_stats(teams_df, scoring_df)
 
     elif selected_section == "🏆 Histórico da Liga":
         render_league_history(all_time_h2h_df, league_history, teams_df)
